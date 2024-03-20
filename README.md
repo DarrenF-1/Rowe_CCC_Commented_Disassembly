@@ -14,7 +14,7 @@ Another side-project to help support the commented disassembly is the creation o
 Note that I am *not* a professional programmer (barely an amateur one).  The 6502 comments and emulator (written in C) do not conform to any sort of standards or best-practices, but currently exist primarily to make sense to me (in the case of 6502 comments) or to function (in the case of the rowem emulator).
 
 Description of files:
-  - ROWE_R-89_V.3_70039704_2764.bin: a binary dump of the EPROM in my jukebox.  It is the starting point for this whole effort.  ROWE_R-89 is th make/model of the jukebox; V.3_70039704 is the printing on the label found on the EPROM, and 2764 is the type/size of EPROM on which it was programmed.
-  - R89_EPROM_disassembly.txt: is the primary work-product.  It was started as an automatically-generated disassembly of the above binary EPROM dump.  The raw disassembly was generated using an online disassembly tool: https://www.white-flame.com/wfdis/.  All comments are made using a simple text editor.
+  - <u>ROWE_R-89_V.3_70039704_2764.bin</u>: a binary dump of the EPROM in my jukebox.  It is the starting point for this whole effort.  ROWE_R-89 is th make/model of the jukebox; V.3_70039704 is the printing on the label found on the EPROM, and 2764 is the type/size of EPROM on which it was programmed.
+  - <u>R89_EPROM_disassembly.txt<u>: is the primary work-product.  It was started as an automatically-generated disassembly of the above binary EPROM dump.  The raw disassembly was generated using an online disassembly tool: https://www.white-flame.com/wfdis/.  All comments are made using a simple text editor.
   - [more to come]
   - 
