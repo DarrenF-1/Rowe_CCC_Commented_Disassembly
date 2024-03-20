@@ -1,7 +1,7 @@
 # Rowe_CCC_Commented_Disassembly
 My work to understand and comment a disassembly of my Rowe R-89 jukebox CCC code.
 
-The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brains" are the "CCC" or "Central Control Computer".  The CCC is a simple 8-bit embedded computer, with a 6502 microprocessor, two 6532 RIOT I/O ICs, 2KB of battery-backed CMOS RAM, and code (and data) programmed to an EPROM.  This project is primarily about documenting how the code (and data) on the EPROM functions.
+The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brains" are the "CCC" or "Central Control Computer".  The CCC is a simple 8-bit embedded computer, with a 6502 microprocessor, two 6520 PIA I/O ICs, 2KB of battery-backed CMOS RAM, and code (and data) programmed to an EPROM.  This project is primarily about documenting how the code (and data) on the EPROM functions.
 
 While my work focuses on the R-89 model jukebox (because that's what I own), it has slightly wider applicability.  Largely similar (and perhaps identical) CCC code was used for subsequent models for several years, such as the R-90, R-91, R-92 and R-93.
 
