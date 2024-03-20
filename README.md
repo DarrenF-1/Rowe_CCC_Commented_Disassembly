@@ -10,3 +10,10 @@ The main purpose of the work is to document (by commending a disassembly of orig
 There will also be side-projects, undertaken to support the main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential (the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.) and some are quite optional (the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC, etc.); but better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
 
 Another side-project to help support the commented disassembly is an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers) as the core of a CCC emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional (it boots up, allows service and programming modes, permits coining-up, and simulating playing selections).
+
+Note that I am *not* a professional programmer (barely an amateur one).  The 6502 comments and emulator (Written in C) do not conform to any sort of standards or best-practices, but currently exist primarily to make sense to me (in the case of 6502 comments) or to function (in the case of the rowem emulator).
+
+Description of files:
+  - ROWE_R-89_V.3_70039704_2764.bin: a binary dump of the EPROM in my jukebox.  It is the starting point for this whole effort.  ROWE_R-89 is th make/model of the jukebox; V.3_70039704 is the printing on the label found on the EPROM, and 2764 is the type/size of EPROM on which it was programmed.
+  - R89_EPROM_disassembly.txt: is the primary work-product.  It was started as an automatically-generated disassembly of the above binary EPROM dump.  The raw disassembly was generated using an online disassembly tool: https://www.white-flame.com/wfdis/.  All comments are made using a simple text editor.
+  - 
