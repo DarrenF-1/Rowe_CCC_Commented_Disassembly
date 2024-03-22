@@ -1,6 +1,8 @@
 ;WFDis v1.4 In
 ;ROWE_R-89_V.3_70039704_2764.bin
 ;https://www.white-flame.com/wfdis/
+
+; NOTE: THIS IS A COMMENTED DISASSEMBLY, AND IS *NOT* INTENDED FOR ASSEMBLY
  
 Le000               ea		; Rowe appears to alway start with a single $ea (nop)
 Le001		    40		; adjust byte $e001 to make checksum of entire EPROM $00
