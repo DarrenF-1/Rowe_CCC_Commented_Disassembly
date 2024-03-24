@@ -1,9 +1,9 @@
 CCC hardware:
 -------------
-6502 CPU
-6520 PIA x2
-8k x 8 EPROM (2764) [some units may have used 16k x 8, 27128 EPROMs]
-2k x 8 CMOS SRAM [typically battery backed]
+- 6502 CPU
+- 6520 PIA x2
+- 8k x 8 EPROM (2764) [some units may have used 16k x 8, 27128 EPROMs]
+- 2k x 8 CMOS SRAM [typically battery backed]
 
 CCC Memory map:
 ---------------
