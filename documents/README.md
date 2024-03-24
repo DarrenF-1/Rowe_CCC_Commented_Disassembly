@@ -2,9 +2,9 @@
 
 ## Description of Files
 
-- schematics
-- R-89 manual
+- photo of my CCC PCB 
+- R-89 manual (in sections)
 - 6520 PIA datasheet
-- LED controller datasheet
-- InterROWEgator brochure
+- MM5450LED controller datasheet
+- InterROWEgator (?)
 - 
