@@ -2,18 +2,18 @@ CCC Hardware:
 -------------
 - 6502 CPU
 - 6520 PIA x2
-- 8k x 8 EPROM (2764) [some units may have used 16k x 8, 27128 EPROMs]
+- 8k x 8 EPROM (2764) [some units may have 16k x 8, 27128 EPROMs]
 - 2k x 8 CMOS SRAM [typically battery backed]
 
 CCC Memory Map:
 ---------------
     $0000-$07FF: 2KB RAM  
     $0800-$1FFF: [unused]
-    $2000-$2003: 6520 PIA registers
+    $2000-$2003: 6520 PIA registers (Z10)
     $2004-$3FFF: [unused]
-    $4000-$4003: 6520 PIA registers
-    $4004-$DFFF: [unused][to $BFFF for 27128 versions]
-    $E000-$FFFF: 8KB EPROM code/data [from $C000 for 27128 versions]
+    $4000-$4003: 6520 PIA registers (Z15)
+    $4004-$DFFF: [unused] [only up to $BFFF for 27128]
+    $E000-$FFFF: 8KB EPROM code/data [from $C000 for 27128]
 
 Getting Started:
 ----------------
