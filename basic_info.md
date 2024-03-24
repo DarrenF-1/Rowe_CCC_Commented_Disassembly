@@ -1,11 +1,11 @@
-CCC hardware:
+CCC Hardware:
 -------------
 - 6502 CPU
 - 6520 PIA x2
 - 8k x 8 EPROM (2764) [some units may have used 16k x 8, 27128 EPROMs]
 - 2k x 8 CMOS SRAM [typically battery backed]
 
-CCC Memory map:
+CCC Memory Map:
 ---------------
     $0000-$07FF: 2KB RAM  
     $0800-$1FFF: [unused]
@@ -15,7 +15,7 @@ CCC Memory map:
     $4004-$DFFF: [unused][to $BFFF for 27128 versions]
     $E000-$FFFF: 8KB EPROM code/data [from $C000 for 27128 versions]
 
-Getting started:
+Getting Started:
 ----------------
 The EPROM is memory-mapped to the top of the 6502 address space.  The highest 6 bytes of address space ($fffa/$fffb, $fffc/$fffd and $fffe/$ffff) are the NMI, RESET and INT vectors.  When the 6502 comes out of reset, it fetches the RESET vector ($fffc/$fffd) and puts it into the PC register (program counter; address of next instruction to be executed).  Scroll to the very bottom of the disassembly, and you'll find that all 3 vectors point to $e1f2 (note that the 6502 is little-endian).  Therefore, code execution will begin at that address.
 
