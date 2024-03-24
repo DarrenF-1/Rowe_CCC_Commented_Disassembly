@@ -1,6 +1,8 @@
 /* Fake6502 CPU emulator core v1.1 *******************
  * (c)2011 Mike Chambers (miker00lz@gmail.com)       *
  *****************************************************
+ * v1.2 - bugfix in ADC opcode related to decimal    *
+ *        mode functionality (2022)                  *
  * v1.1 - Small bugfix in BIT opcode, but it was the *
  *        difference between a few games in my NES   *
  *        emulator working and being broken!         *
@@ -316,6 +318,9 @@ static void putvalue(uint16_t saveval) {
         else write6502(ea, (saveval & 0x00FF));
 }
 
+//NOTE: code for ADC (only) modified from the original fake6502.c code by DarrenF
+//      so that it returns correct results when the DECIMAL flag is set
+//      Only tested on a single example of code (Rowe R-89 CCC code).
 
 //instruction handler functions
 static void adc() {
