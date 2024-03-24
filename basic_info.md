@@ -7,13 +7,13 @@ CCC hardware:
 
 CCC Memory map:
 ---------------
-0x0000-0x07FF: 2KB RAM
-0x0800-0x1FFF: [unused?]
-0x2000-0x2003: 6520 PIA registers
-0x2004-0x3FFF: [unused?]
-0x4000-0x4003: 6520 PIA registers
-0x4004-0xDFFF: [unused?]
-0xE000-0xFFFF: 8KB EPROM code/data [from C000 for 27128 versions]
+    $0000-$07FF: 2KB RAM  
+    $0800-$1FFF: [unused]
+    $2000-$2003: 6520 PIA registers
+    $2004-$3FFF: [unused]
+    $4000-$4003: 6520 PIA registers
+    $4004-$DFFF: [unused][to $BFFF for 27128 versions]
+    $E000-$FFFF: 8KB EPROM code/data [from $C000 for 27128 versions]
 
 Getting started:
 ----------------
