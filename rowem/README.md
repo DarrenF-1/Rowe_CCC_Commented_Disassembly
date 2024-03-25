@@ -13,12 +13,19 @@ Note that rowem.c and fake6502.c should probably be in the current folder for th
 
 _rowem_ will prompt you:
 > Simulate loss of battery power (reset all RAM)?
+
 You should answer:
+
 > y
+
 on the first run, as there will be no "ram.bin" file (it gets saves when exiting the emulator).  _rowem_ will next prompt:
+
 >  Hold ADVANCE and RESET?
+
 To which I recommend you respond:
+
 >  y
+
 At thta point, the emulator should boot up.  On subsequent runs (after properly exiting rowem, so that a "ram.bin" file gets created) you may answer "n" to the first prompt.  In that case, rowem will load the prior RAM contents from "ram.bin", and you may also answer "n" to the 2nd prompt.  This will simulate powering the jukebox on after being powered off (with a functional battery in the CCC).
 
 The _rowem_ display consists of:
