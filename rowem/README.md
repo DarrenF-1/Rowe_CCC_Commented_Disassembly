@@ -11,7 +11,15 @@ Note that rowem.c and fake6502.c should probably be in the current folder for th
 
 **Usage:**  There are no command line options supported.  Run rowem simply using "rowem".  Note that rowem EXPECTS there to be an 8kB file named "rom.bin" in the same folder (there is currently no graceful error/warning if this is not found, or is the wrong size).  I use the EPROM dump "ROWE_R-89_V.3_70039704_2764.bin" (part of the repo) renamed "rom.bin" for this purpose; however any working Rowe CCC (8kB) ROM should suffice.
 
-_rowem_ will prompt you "Simulate loss of battery power (reset all RAM)?".  You should answer "y" on the first run, as there will be no "ram.bin" file (it gets saves when exiting the emulator).  _rowem_ will next prompt "Hold ADVANCE and RESET?", to which I recommend you respond "y".  At thta point, the emulator should boot up.  On subsequent runs (after properly exiting rowem, so that a "ram.bin" file gets created) you may answer "n" to the first prompt.  In that case, rowem will load the prior RAM contents from "ram.bin", and you may also answer "n" to the 2nd prompt.  This will simulate powering the jukebox on after being powered off (with a functional battery in the CCC).
+_rowem_ will prompt you:
+> Simulate loss of battery power (reset all RAM)?
+You should answer:
+> y
+on the first run, as there will be no "ram.bin" file (it gets saves when exiting the emulator).  _rowem_ will next prompt:
+>  Hold ADVANCE and RESET?
+To which I recommend you respond:
+>  y
+At thta point, the emulator should boot up.  On subsequent runs (after properly exiting rowem, so that a "ram.bin" file gets created) you may answer "n" to the first prompt.  In that case, rowem will load the prior RAM contents from "ram.bin", and you may also answer "n" to the 2nd prompt.  This will simulate powering the jukebox on after being powered off (with a functional battery in the CCC).
 
 The _rowem_ display consists of:
  - Top row: the (4) 3-digit LED 7-segment displays on the top of the jukebox, 
