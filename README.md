@@ -13,7 +13,11 @@ The main purpose of the project is to document, by commenting a disassembly of o
 
 There will also be sub-projects, undertaken to support the main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential (the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.) and some are quite optional (the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC, etc.).  In any case, better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
 
+### Emulator
+
 Another sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a helpful tool to help build and verify understanding of the 6502 code function (especially variable/RAM use).  It will also be helpful to do simulated testing of future EPROM code modifications.  It could potentially be much more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.  Some of these features may be added in the future.
+
+### Note
 
 Note that I am *not* a professional programmer.  The 6502 comments and emulator (written in C) do not conform to any sort of standards or best-practices.  They currently exist primarily to make sense to me (in the case of 6502 comments) or to function (in the case of the rowem emulator).  I am certainly not against improving the coding and commenting standards--but it's going to be an ongoing learning process.
 
