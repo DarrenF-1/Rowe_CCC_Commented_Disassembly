@@ -5,7 +5,7 @@ The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brains" are the "CCC
 
 While my project focuses on the R-89 model jukebox (because that's what I own), it has slightly wider applicability.  Largely similar (and perhaps identical) CCC circuit boards and code was used for subsequent models for several years, such as the R-90, R-91, R-92, R-93 and R-94 (collectively "R-9X").
 
-> Note that this project relates specifically to the "CCC" used in th R-88 _video_ and R-89 through the R-94 models with CCC assembly part number 4-07773-XX and CCC PCB part number 6-09738-XX. It does *not* relate to the identially-named "CCC" used in the earlier R-84 throuh R-88 (_non_-video) models, with assembly P/N 6-08870-XX and PCB P/N 6-08871-XX; _nor_ to the "CCC" used in the later CD-100 and up models, with assembly P/N 4-08322-XX and PCB P/N 6-10311-XX.
+> Note that this project relates specifically to the "CCC" used in th R-88 _video_ and R-89 through the R-94 models with CCC assembly part number 4-07773-XX and CCC PCB part number 6-09738-XX. It does *not* relate to the identically-named "CCC" used in the earlier R-84 throuh R-88 (_non_-video) models, with assembly P/N 6-08870-XX and PCB P/N 6-08871-XX; _nor_ to the "CCC" used in the later CD-100 and up models, with assembly P/N 4-08322-XX and PCB P/N 6-10311-XX.
 
 The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn may facilitate hacks/modifications/improvements/add-ons/upgrades/homebrew versions/etc.
 
