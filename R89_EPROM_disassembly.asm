@@ -5,77 +5,109 @@
 ; this is a commented disassembly, NOT currently intended as input to an assembler
  
 Le000               ea		; Rowe appears to always start EPROMs with a single $ea (nop) for unknown reasons
-Le001		    40		; the 2nd byte ($e001 here) is set to make the LSB of the sum of the entire EPROM 0
+Le001		    40		; the 2nd byte ($e001 here) is apparently set to make the LSB of the sum of the entire EPROM 0
 				;
-				;**************************
-				; "InteROWEgator" RAM DUMP
-				;**************************
-				;   transfers some data to a hand-held unit for operators
-				;   (little information about them is available online)
+				;***************************
+				; "InterROWEgator" RAM DUMP
+				;***************************
+				;  transfers data to a hand-held unit for operators
+				;  (little information about them is available online)
+				;    uses temporary variable $0c (for baud rate delay timer control)
+				;    uses $06/$07 as an address pointer (into RAM)
+				;    uses $08 temp var; loop counter, then checksum
 				;
-Se002               jsr Sfb4a	; returns either $73 or $7b in A & var $0a (%1000 0011 or %1000 1011; b3 different)
-                    sta $4000	; put on PIA2-A (data sent to video system?)
+				;  transmits (bytes of each page in reverse order): 
+				;    $07e6-$7000, $06e6-$0600, $05e6-$0500, $04e6-$0400  
+				;    $0380-$0300, $02d8-$02??, a 1-byte checksum
+				;
+Se002               jsr Sfb4a	; set a base value for PIA2-A, A & var $0a (%1000 0011 or %1000 1011) based on $78 var
+                    sta $4000	; put base value on PIA2-A
+				;
+				; set the baud rate
+				;
                     lda $0337	; get RAM dump baud rate setting
-                    ldx #$1f	; (31) default delay size
-                    cmp #$30	; compare A to $30 (48) (2400 baud? 4800 baud?)
-                    beq Le019	; branch ahead if equal
-                    ldx #$44	;   X=$44 (68) delay size
-                    cmp #$60	;   compare A to $60 (96) (1200 baud? 9600 baud?)
-                    bne Le019   ;   branch if NOT equal
-                    ldx #$0c	;     X=$0c (12) delay size (9600 baud?)
-Le019               stx $0c	; temp variable is $1f, $44 or $0c; delay constant based baud rate setting
-                    lda #$07	; init counter A=7
-                    sta $07	; variable $07 = 7, MSB of pointer (start with page 7 of RAM)
-                    sta $08	; init delay loop counter $08 = 7
-Le021               jsr Se3dc	; 10ms delay (returns with X=0)
-                    dec $08	;   decrement counter
-                    bne Le021	; loopback until $08=0 (80ms delay total)
-                    stx $06	; store X (now 0) to var $06
-Le02a               ldy #$e6	; (230) (default # of bytes per page to output)
-                    cmp #$03	; compare *A* to 3 ("are we on page 3 of RAM?")
-                    bne Le034	; skip ahead if *A* != 3 (any page other than 3)
-                    ldy #$80	;   Y=$80 (128) fewer bytes on page 3
-                    bne Le03e	;   unconditional branch forward
-Le034               cmp #$02	; compare *A* to 2 (are we on page 2 of RAM?)
-                    bne Le03e	; skip ahead if *A* != 2
-                    ldy #$19	;   init counter Y=$19 (25)
-                    lda #$d8	;   A=$d8
-                    sta $06	;   variable $06 gets $d8 (LSB of pointer?) [$07d8?]
-Le03e               tya		; \
-                    pha		; / put Y on stack
-                    lda ($06),y	; get value at $06/$07 pointer offset by Y
-                    sta $b1	; store byte to output at $b1
-                    clc		; clear carry flag for addition
-                    adc $08	; A=A+8
-                    sta $08	; store to variable $08
-Le049               ldy $0c	; get delay size based on baud rate setting ($1f, $44 or $0c)
-                    ldx #$14  	; X=$14 (20)
-Le04d               dex		;   X=X-1
-                    bne Le04d	; delay, loopback 20 times (X=0 when this is done)
-                    jsr Sfcad	; [something serial output related; delay per $0c variable]
-                    pla		; \_ retrieve Y from stack
+                    ldx #$1f	; (31) delay size  for 4800 baud
+                    cmp #$30	; is the setting to 48? (for 4800)
+                    beq Le019	; if so, skip ahead and begin
+                    ldx #$44	; (68) delay size for 2400 baud
+                    cmp #$60	; is the setting 96? (for 9600 baud)
+                    bne Le019   ; if NOT, skip ahead with the 2400 baud setting
+                    ldx #$0c	; if SO, use (13) for 9600
+Le019               stx $0c	; store delay constant (based baud rate setting) to a temporary variable
+				;	
+				; set pointer and a short delay
+				;
+                    lda #$07	; \ $06/$07 will be an address pointer 
+                    sta $07	; / start the MSB for page 7 of RAM
+                    sta $08	; also use 7 to init a delay loop counter
+Le021               jsr Se3dc	; \  10ms delay (this surboutine returns with X=0)
+                    dec $08	;  } decrement counter
+                    bne Le021	; /  loopback for 80ms total delay (leaves $08 as 0)
+                    stx $06	; set LSB of $06/$07 pointer to 0 (X=0 was returned from Se3dc above)
+				;
+				; top of outer loop
+				; adjust pointer and number of bytes on some pages
+				;
+Le02a               ldy #$e6	; default # of bytes per page to transmit (230+1) all but pages 2 & 3
+                    cmp #$03	; is this page 3 of RAM?
+                    bne Le034	; if NOT skip ahead, if page 3 (operator settings) then:
+                    ldy #$80	;   transmit fewer bytes of page 3 (128+1)
+                    bne Le03e	;   (unconditional branch)
+Le034               cmp #$02	; is this page 2 of RAM?
+                    bne Le03e	; if NOT skip ahead, if page 2 (counters) then:
+                    ldy #$19	;   only transmit 25(+1) bytes of page 2
+                    lda #$d8	;   \ also, for page 2 start at $02d8(?)
+                    sta $06	;   / (set LSB of pointer)
+				;
+				; inner loop (do one page)
+				;
+Le03e               tya		; \ put Y (in-page offset/count) onto the stack for now
+                    pha		; / (so Y can be used for something else)
+                    lda ($06),y	; get byte from RAM based on pointer and Y-offset
+                    sta $b1	; put the byte to transmit in a temp var $b1 (used by subroutine below)
+                    clc		; clear carry for addition \
+                    adc $08	; add this value to a       } keep a checksum of all bytes transmitted
+                    sta $08	; running 1-byte checksum  /
+Le049               ldy $0c	; get baud-rate delay constant [pointless; Sfcad fetches it from RAM]
+                    ldx #$14  	; \  20 loops
+Le04d               dex		;  } small delay loopback (X=0 when this is done) 
+                    bne Le04d	; /
+                    jsr Sfcad	; output byte (at $b1) via serial (at baud rate per $0a)
+                    pla		; \_ retrieve Y from stack (in-page offset/count)
                     tay		; / 
-                    lda $07	; get MSB of pointer
-                    cmp #$01	; is it 1 yet?
-                    bne Le069	; if not branch ahead
-                    jsr Se3dc	;   10ms delay
-                    jsr Se3dc	;   10ms delay
-                    lda $0a	;   get PIA-2B base value
-                    ora #$04	;   (%0000 0100) set bit 2
-                    sta $4000	;   wallbox serial out
-                    rts		;   done here!            
+                    lda $07	; \ did was just finish page 1?
+                    cmp #$01	; /
+                    bne Le069	; more pages to do, branch ahead
+				;
+				; finish up and exit subroutine
+				;
+                    jsr Se3dc	; \ 20ms delay
+                    jsr Se3dc	; / 
+                    lda $0a	; retrieve PIA-2B base value
+                    ora #$04	; (%0000 0100) set bit 2
+                    sta $4000	; leave output line high
+                    rts		; 
+				;
+				; bottom part of inner loop
+				; 
 Le069               dey		; decrement offset into current page of RAM
-                    cpy #$ff	; was Y 0 before decrement?
-                    bne Le03e	; if not, loopback for next byte
-                    dec $07	;   decrement MSB of pointer
-                    lda $07	;   get updated MSB of pointer
-                    cmp #$01	;   compare to 1
-                    bne Le02a	;   if no, loopback to do next page of RAM
-                    lda $08	;     get $08 (modified RAM; value+8?)
-                    eor #$ff	;     \ 2's complement; convert
-                    adc #$01	;     / to signed binary number
-                    sta $b1	;     number & store as byte to be output
-                    jmp Le049	;     loopback
+                    cpy #$ff	; \ are we done with this page of RAM? (Y wrapped around) 
+                    bne Le03e	; / if not, loopback for next byte
+				;
+				; bottom part of outer loop
+				;				
+                    dec $07	; decrement to the next page
+                    lda $07	; \ check new page
+                    cmp #$01	; / have we reached page 1?
+                    bne Le02a	; if not, simply loopback to do next page
+				;
+				; instead of doing page 1...
+				;
+                    lda $08	; fetch checksum value
+                    eor #$ff	; \ 2's complement: convert
+                    adc #$01	; / it to signed binary number
+                    sta $b1	; store as byte to be transmitted
+                    jmp Le049	; loopback to transmit the checksum and finish
 				;
 				;************************
 				; external comms related (for video system?)
@@ -194,7 +226,7 @@ Le13d               lda $4000	;   read PIA2-A
                     and #$07	; (%0000 0111) isolate low 3 bits
                     sta $07	; store as $07 var
                     ldx #$00	; init byte counter A=0
-Le152               ldy #$0a	; init loop counter Y=$0a (10 bits?)
+Le152               ldy #$0a	; init loop counter (10 bits?)
                     sec		;   set carry flag
                     bcs Le159	;   always branch over next opcode
 				;
@@ -544,33 +576,33 @@ Le3c3               3e 3f 7e 7f	; data table of values for PIA2-B (ref. code at 
 				;*********************
 				; VARIOUS DELAY LOOPS
 				;*********************
-				;    2s delay
-				;  0.5s delay
-				;   5ms delay
-				;  10ms delay
-				; 100ms delay
+				;    2s delay - e3c7 entry
+				;  0.5s delay - e3cb entry
+				;   5ms delay - e3d8 entry
+				;  10ms delay - e3dc entry
+				; 100ms delay - e3d4 entry
 				;
-Se3c7               ldy #$14	; (20 * 100ms = 2s)
+Se3c7               ldy #$14	; (20 * 100ms = 2s delay)
                     bne Le3cd	; unconditional branch (zero flag clear from LDY)
 				;
-Se3cb               ldy #$05	; Y=5 (5 * 100ms = 500ms = 0.5s)
-Le3cd               jsr Se3d4	; do 100ms delay
+Se3cb               ldy #$05	; Y=5 (5 * 100ms = 500ms = 0.5s delay)
+Le3cd               jsr Se3d4	; do a 100ms delay
                     dey		;   Y=Y-1
                     bne Le3cd	; loopback until Y=0
                     rts		; done
 				;
-Se3d4               ldx #$64	; alternate entry - X=$64 (100ms)
-                    bne Le3de	; unconditional branch
+Se3d4               ldx #$64	; alternate entry - X=$64 (100ms delay)
+                    bne Le3de	; unconditional branch to ms delay loop
 				;
-Se3d8               ldx #$05	; alternate entry - X=5 (5ms)
-                    bne Le3de	; unconditional branch
+Se3d8               ldx #$05	; alternate entry - X=5 (5ms delay)
+                    bne Le3de	; unconditional branch ms delay loop
 				;
-Se3dc               ldx #$0a	; alternate entry - X=$0a (10ms)
+Se3dc               ldx #$0a	; alternate entry - X=$0a (10ms delay)
 				;
-Le3de               jsr Sef4d	; inner 1ms delay loop subroutine
+Le3de               jsr Sef4d	;   inner 1ms delay loop subroutine
                     dex		;   decrement counter
                     bne Le3de	; loopback until X=0
-                    rts		; done here!
+                    rts		; done
                     		;
 				;****************************
 				; wait for communication (1)?
@@ -579,7 +611,7 @@ Le3de               jsr Sef4d	; inner 1ms delay loop subroutine
 Se3e5               lda $4000	; PIA2-A inputs
                     and #$40	;   isolate bit 6 (%0100 0000) (input from CD player?)
                     bne Se3e5	; loopback to wait for communication? (to end?)
-                    rts		; done here (always returns $40 in A?)
+                    rts		; done (always returns $40 in A?)
 				; 
 				;****************************
 				; wait for communication (2)?
@@ -594,20 +626,38 @@ Le3f5               lda $4000	; get PIA2-A inputs
                     lda $4002	; PIA2-B outputs
                     ora #$10	; (%0001 0000) all select bits low
                     sta $4002	; store PIA2-B outputs back
-                    rts		; done here
+                    rts		; done
                    		;
-Le405                              a6 0b f0 0c a0 00 91 00 c8 d0 fb	; un-called 6502 code
-Le410               e6 01 ca d0 f6 a6 0a f0 08 a0 00 91 00 c8 ca d0	; (thus not disassembled)
-Le420               fa 60 						; [disassemble later]
 				;
-				;***************************
-				; DATA TABLE: RAM LOCATIONS 
-				;             FOR LED DATA
-				;***************************
-				;  (ref code: $e435)
+Le405                              a6 0b f0 0c a0 00 91 00 c8 d0 fb	; un-reachable code, 29 bytes
+Le410               e6 01 ca d0 f6 a6 0a f0 08 a0 00 91 00 c8 ca d0	; (thus not disassembled)
+Le420               fa 60
+		;   		uncalled code, disassembled for reference
+		;   ldx $0b		
+		;   beq [$0c]
+		;   ldy #$00
+		;   sta ($00),y
+		;   iny
+		;   bne [$fb]
+		;   inc $01
+		;   dex
+		;   bne [$f6]
+		;   ldx $0a
+		;   beq [$08]
+		;   ldy #$00
+		;   sta ($00),y
+		;   iny
+		;   bne [$fa]
+		;   rts
+				;
+				;*******************************
+				; DATA TABLE: LED RAM LOCATIONS
+				;*******************************
+				;  only used by code below at $e435
 				;
 Le422                     5e 5f 60 61 38 2a 29 28 8e 8d 8c 92 91 90
 Le430               96 95 94
+				;
 				; 5e-61: CCC LEDs
 				; 38   : indicator LEDs ("THANK YOU" & "MAKE SELECTION")
 				; 2a-28: top of juke LEDs
@@ -618,16 +668,17 @@ Le430               96 95 94
 				;************************
 				; put "8888" on CCC LEDs?
 				;************************
-				;   (this entry called from 1 place - $e3bd)
+				;   this entry called from 1 place - $e3bd
 				;
 Se433               ldy #$03	; init loop counter to Y=3 (alt. entry)
 				;
 				;***********************
-				; put "888" on all LEDs?
+				; put "888" on all LEDs
 				;***********************
-				;   (called from 1 place - $ff06)
+				;  expects a value in Y 
+				;  called from 1 place: $ff06
 				; 
-Se435               jsr Sff35	; clear all LED display data
+Se435               jsr Sff35	; clear all LED display data (Y not used)
                     ldx $e422,y	;   get table value (from above)
                     lda #$0b	;   A=(%0000 1011) (for case of X=$38) [turn on both indicator lamps?]
                     cpx #$38	;   compare X to $38 [only 1 in table, at Y=4]
@@ -906,9 +957,9 @@ Le5b8               lda $8c,x	;   get digit contents [ignore $8b digit; it's alw
                     bne Le5b8	; loopback if not [could be 1 byte shorter by unrolling loop]
 Le5c5               rts		; done
                   		;
-				;********************
-				; SELFTEST RAM & ROM
-				;********************
+				;********************************
+				; SELFTEST RAM & ROM FINISH INIT
+				;********************************
 				;  (reached by JMP from $e252)
 				;
 Le5c6               jsr Sef1e	; verify RAM checksum (of programmable values)
@@ -1027,7 +1078,7 @@ Le696               jmp Le5c6	; jump back to start of RAM/ROM check routine
 				; RAM checksum was OK,
 				; continue boot-up in "ON" mode...
 				;
-Le699               jsr Sff67	; [zero & init some RAM/variables]
+Le699               jsr Sff67	; zero & init variables
                     jsr Se56a	; check service mode switch?
                     lda $68	; get PIA1-A status
                     and #$02	; check the CCC battery level
@@ -1142,7 +1193,7 @@ Le755               sta $0100,x	; loop clears $0100-$0131 (?)
 				;************************
 				; main-loop subroutine 1 (once per second?)
 				;************************
-				;   (only called from 1 place - main loop)
+				;   (only called from main loop)
 				;
 Se75c               dec $3d	; \ small delay: decrement $3d var
                     bne Le7c5	; /              loopback until $3d = 0
@@ -1155,8 +1206,8 @@ Se75c               dec $3d	; \ small delay: decrement $3d var
                     lda $2002	;     get PIA1-B status
                     and #$10	;     isolate bit 4 (%0001 0000) - TURNTABLE MOTOR
                     bne Le77e	;     branch if bit is high (turntable on?)
-                    lda $35	;       get $35 var (service/normal mode?)
-                    bne Le77e	;       branch if nonzero
+                    lda $35	;       get service/normal boolean
+                    bne Le77e	;       branch if in service mode
                     dec $e0	;         decrement $e0 counter
                     bne Le77e	;         branch if non-zero
                     jsr Sf877	;           [subroutine]
@@ -1188,9 +1239,9 @@ Le7aa               ora $f3	; OR A with $f3 var? (turntable motor flag?)
                     cmp $9b	; compare A to $9b var(?)
                     beq Le7ba	; skip ahead if equal
                     lda $35	;   get service/normal mode flag
-                    bne Le7ba	;   branch down if 0 (service mode?)
+                    bne Le7ba	;   branch down if in service mode
                     lda #$40	;     \
-                    jsr Sfcff	;     / put $40 value into page-1 table?
+                    jsr Sfcff	;     / put #$40 into event table (idle?)
 Le7ba               pla		; A back from stack
                     sta $9b	; store it to $9b var
                     bne Le7e4	; 
@@ -1213,7 +1264,7 @@ Le7c5               bne Le7e8	; if in entry process, skip ahead... (don't autopl
                     dec $fa	;     decrement autoplay minutes timer
                     bne Le7e4	;     if minutes timer hasn't reached 0, reset seconds timer
 Le7de               jsr Sf535	; do autoplay
-                    jsr Sf95a	; [?]
+                    jsr Sf95a	; [do some background tasks]
 Le7e4               lda #$3c	; \ init seconds timer to (60) seconds
                     sta $83	; /
 				;
@@ -1299,13 +1350,14 @@ Le87b               lda $38	;   get $38 var (THANK YOU & MAKE SELECTION lights?)
                     sta $38	;   store updated value
 				;
 Le881               jsr Se45f	; (update LED displays - doesn't use parent loop?)
-                    rts		; done here!
+                    rts		; done
 				; 
                     		;*************************
 				; main loop subroutine 2?
 				;*************************
-				;   (only called from 1 place - main loop)
-				;
+				;  (only called from main loop)
+				;  (needs lots of analysis work)
+				; 
 Se885               lda $eb	; get $eb var
                     beq Le88c	; skip next opcode if $eb=0
                     jmp Le9d6	;   jump down a ways
@@ -1555,10 +1607,10 @@ Lea42               ldx $39	; video mode boolean?
                     stx $031e	;   change records/video setting? (to 0; video)
                     dec $39	;   decrement $39 var (from 0 to $ff)
                     jsr Sef18	;   update RAM checksum
-                    lda #$01	;
-                    jsr Sfcff	;   [put $01 in event table]
-                    lda #$60	;   
-                    jsr Sfcff	;   [put $60 in event table]
+                    lda #$01	;   \
+                    jsr Sfcff	;   / put #$01 into event table
+                    lda #$60	;   \
+                    jsr Sfcff	;   / put #$60 into event table (selection-related?)
                     ldx #$ff	;   X=$ff
 				;
 Lea5a               lda $eb	; get $eb var
@@ -1588,11 +1640,11 @@ Lea89               cmp #$33	; is $eb var $33?
                     bne Lea95	; if not, skip ahead...
                     inc $f7	;
                     bne Lea95	;
-                    lda #$90	;
-                    sta $f7	;
-Lea95               lda #$00	;
-                    sta $eb	;
-                    sta $78	;
+                    lda #$90	; \ set $f7 to #$90
+                    sta $f7	; /
+Lea95               lda #$00	; \
+                    sta $eb	;  } zero out $eb and $78 vars
+                    sta $78	; /
                     rts		;
 				;
 				;***********************************
@@ -1705,7 +1757,7 @@ Leb53               lda $02d7	; get var (nickels to be added to physical counter
                     sta $a0	; store at variable $a0
 Leb62               sta $0c	; ...and at $0c
                     lda #$e0	; \ 
-                    jsr Sfcff	; / store $e0 in a page-1 data table of some sort(?)
+                    jsr Sfcff	; / put #$e0 into event table (coin-related)
                     lda $0c	; get variable $0c (recently set money deposited, in nickels)
                     clc		; clear carry for addition
                     adc $02f8	; add to money-left-over(?) variable
@@ -2536,7 +2588,7 @@ Lf05c               dey		;   next entry on lockout list
                     bpl Lf04a	; loopback until all 4 entries checked
 				;
                     jsr Sf1b2	; add X to selection list
-                    jsr Sf95a	; [subroutine]
+                    jsr Sf95a	; [do some background tasks]
                     jmp Lf24c	; jump to credit-related(?) subroutine...
 				;
 				; (records-mode path)
@@ -2808,9 +2860,9 @@ Lf1da               cmp $0200,y	; compare new selection to Yth table value
 Lf1f3               cpy $ee	; compare Y to 238                \ unsure why/how would this happen?
                     beq Lf1c9	; if Y=238 branch to a nearby rts /
                     sty $e5	; update position in selection table
-                    lda #$61	; (some sort of event code?)
-                    jsr Sfcff	; subroutine to put event code in a table(?)
-                    rts		; done here!
+                    lda #$61	; \ 
+                    jsr Sfcff	; / put #$61 int event table (selection made?)
+                    rts		; 
 				;
 				;   conventional selection mode (not FIFO)
 				;
@@ -2827,7 +2879,7 @@ Lf1ff               lda #$00	; \ flag Xth entry in selection table
 				;      $0a = RESET key pressed
 				;      $0b = POPULAR key pressed
 				;   updates POPULAR key flag at $66
-				;   uses counter (debounce?) at $47
+				;   uses debounce counter at $47
 				;
 				;   alternate entry at $f21b omits POPULAR+# capability
 				;
@@ -2839,10 +2891,10 @@ Sf205               lda $ff97	; bitmask from ROM table to select "POPULAR" key i
                     beq Lf215	; if 0 (active-low, POPULAR key is pressed) skip next opcode
                     inx		;   increment X to toggle it from $ff to 0
 Lf215               stx $66	; store POPULAR key status boolean
-                    ldx #$0a	; X = $0a (10) (why? left-over 11-key option?)
-                    bne Lf21d	; always branch... to next instruction (seems silly?)
+                    ldx #$0a	; X = 10 keys remaining to read (don't re-check the POPULAR key)
+                    bne Lf21d	; always skip next opcode instruction
 				;
-Sf21b               ldx #$0b	; init X counter to 11 (read 12 keys: 0-9, RESET, POPULAR) [alt entry pt]
+Sf21b               ldx #$0b	; init counter to 11 (read 12 keys: 0-9, RESET, POPULAR) [alt entry pt]
 Lf21d               lda #$80	; A = %1000 0000
                     sta $36	; store $80 to $36 (default if no key is pressed)
 Lf221               lda $ff8c,x	; get Xth value from ROM table (select keypad selects/return)
@@ -3176,8 +3228,8 @@ Lf456               cmp #$07	; compare A to 7 (for 7XX codes)
                     cmp #$08	; compare A to 8 (for 8XX codes)
                     bne Lf467	; if A<>8 branch down to continue checks
                     jsr Se453	;   update LED displays
-                    jsr Se002	;   perform "inteROWEgator" RAM dump
-                    jmp Sff31	;   clear top LED displays (then RTS)
+                    jsr Se002	;   perform RAM dump for an"inteROWEgator"
+                    jmp Sff31	;   clear top LED displays (then rts from there)
 				;
 				; 9XX CODE
 				;
@@ -3418,8 +3470,8 @@ Lf5ed               tax		; X->A
 				; handle autoplay mode 1 (A-sides only) [by process of elimination]
 				;
 Lf5f2               lda $e1	; get autoplay position counter
-                    cmp #$64	; 
-                    bcc Lf605	; branch ahead if A < 100
+                    cmp #$64	; \
+                    bcc Lf605	; / branch ahead if A < 100
                     sbc #$64	;   subtract 100 (make B-sides into A-sides?) 
                     jmp Lf605	; (jump ahead to XX8/XX9 check in common part of code)
                     		;
@@ -3429,7 +3481,9 @@ Lf5fd               lda $e1	; get current autoplay counter
                     cmp #$64	; compare to 100
                     bcs Lf605	; if A >= 100 skip next opcode
 Lf603               adc #$64	;   A=A+100 (to make A-sides into B-sides?)
+				;
 				; [modes 1 and 2 join here]
+				;
 Lf605               ldx $031d	; are XX8 & XX9 selections disabled?
                     bne Lf611	; branch down if disabled
                     ldx $39	;   video mode boolean?
@@ -3457,63 +3511,68 @@ Lf634               tax		; copy A to X (A & X both old selection #)
                     jsr Lf1ca	; put selection into playlist
                     pla		; pull A (selection #)
 				;
-				; handle autoplay mode 6 (A and B sides)
+				; tweak for autoplay mode 6 [and 7?] (A and B sides)
 				;
                     ldx $0320	; get autoplay mode variable
                     cpx #$06	; \
                     bcc Lf645	; / if mode < 6, branch to rts
                     cmp #$64	;   compare A (selection #) to 100 
-                    bcc Lf603	;   if < 100 branch WAY back (cue up the B-side with every A-side?)
-Lf645               rts		; done here!
+                    bcc Lf603	;   if < 100 branch back to cue up the B-side with each A-side
+Lf645               rts		; 
                     		;
-				;*****
-				; ???
-				;*****
+				;****************************************
+				; MONITOR SERVICE SWITCH, MECH AND COINS
+				;****************************************
+				;  called from 2 places
 				;
-Sf646               jsr Se56a	; (read PIA1-A and service switch override?)
-                    jsr Sf653	; (looks mostly record mechanism related)
-                    jsr Sf775	; (looks mostly record mechanism related)
-                    jsr Sea9c	; (take & count money; give credits)
+Sf646               jsr Se56a	; read PIA1-A and service switch (including override)
+                    jsr Sf653	; manage magaine position
+                    jsr Sf775	; handle record mech
+                    jsr Sea9c	; take & count money; give credits
                     rts		;
-                    		;*****
-				; ???
-				;*****
+                    		;***************************
+				; manage magazine position?
+				;***************************
 				;
 Sf653               lda $68	; get PIA1-A status
-                    and #$20	; %0010 0000 isolate bit 5: INDEX 
+                    and #$20	; %0010 0000 isolate bit 5: INDEX opto
                     bne Lf660	; branch if bit 5 high (active)
                     lda $59	;   get $59 counter (debounce?)
-                    beq Lf65f	;   if $59=0, branch to RTS
+                    beq Lf65f	;   if $59=0, branch to rts
                     dec $59	;   decrement $59 counter (debounce?)
-Lf65f               rts		;   done here!
-Lf660               lda $59	; get $59 counter
-                    bne Lf65f	; branch to RTS if not 0
+Lf65f               rts		;   done
+Lf660               lda $59	; get $59 debounce counter
+                    bne Lf65f	; branch to rts if not 0 yet
+				;
+				; index opto now debounced
+				;
                     lda $2002	; get PIA1-B
                     and #$06	; isolate bits 1 & 2 (%0000 0110) DETENT & MAGazine MOTOR
                     cmp #$06	; check if both are high (active)
-                    bne Lf65f	; if not, branch to RTS
-                    lda #$01	; \ A=1
-                    sta $59	; / reset $59 to 1 (debounce counter?)
-                    inc $67	; increment $67 counter (current magazine position?)
-                    lda #$ff	; \ init $f0 var to $ff
+                    bne Lf65f	; if not, branch to rts
+                    lda #$01	; \ 
+                    sta $59	; / reset index debounce counter to 1 (why?)
+                    inc $67	; increment $67 counter (current magazine position)
+                    lda #$ff	; \ set $f0 boolean var
                     sta $f0	; /
                     lda $68	; get PIA1-A status
                     and #$10	; %0001 0000 isolate bit 4: HOME opto
                     bne Lf683	; branch ahead if bit 4 is high (active)
-                    lda $67	;   get $67 var (current magazine position?)
-                    cmp #$64	;   compare to $64 (100) 
-                    bcc Lf68a	;   branch if $64 < 100
-Lf683               lda #$00	; \ wrap $67 var around to 0 (magazine position)
-                    sta $67	; /
-                    jsr Sf73c	; [subroutine]
+                    lda $67	;   get current magazine position
+                    cmp #$64	;   compare to 100
+                    bcc Lf68a	;   branch down if not at position 100 yet
+Lf683               lda #$00	;     \ wrap magazine position around to 0
+                    sta $67	;     /
+                    jsr Sf73c	;    [subroutine] 
 Lf68a               lda $68	; get PIA1-A status
                     and #$04	; %0000 0100 isolate bit 2: SERVICE / ON
-                    beq Lf69a	; branch ahead if bit 2 is low (ON mode?)
+                    beq Lf69a	; branch ahead if low (ON mode?)
                     lda $68	;   get PIA1-A status
                     and #$80	;   %1000 0000 isolate bit 7: CANCEL
                     bne Lf699	;   branch to rts if CANCEL pressed?
-                    jsr Sff4d	;   turn DETENT on/off
+                    jsr Sff4d	;   turn DETENT off
 Lf699               rts		;   done
+				;
 Lf69a               lda $74	; get $74 var
                     beq Lf6a1	; branch down if 0
                     dec $74	;   decrement $74 counter
@@ -3531,7 +3590,7 @@ Lf6a1               lda $ea	; get $ea var
                     lda #$00	;     \ init $f2 var to $00 (B-side flag?)
                     sta $f2	;     /
 Lf6ba               jsr Sff4d	;     turn DETENT off
-                    rts		;     done here
+                    rts		;  done
 				;
 Lf6be               lda $70	; get $70 var (selection playing flag?)
                     beq Lf6ba	; if 0, branch back
@@ -3547,7 +3606,7 @@ Lf6d0               cmp #$64	; compare ($e9 var) to $64 (100)
                     bcc Lf6d8	; if A < 100 branch to RTS 
                     lda #$63	;   \ init $e9 var to $63 (99)
                     sta $e9	;   /
-Lf6d8               rts		; done here!
+Lf6d8               rts		; done
 				;
                     		;***************************************
 				; check to see if spinning magazine has
@@ -3575,7 +3634,7 @@ Lf6f1               lda $f0	;   get $f0 var(?)
                     eor #$ff	;     flip boolean sense
                     sta $f2	;     store $f2 back
                     beq Sf6d9	;     branch back if $f2 is now 0 [check other side of this record?]
-Lf6fd               rts		; done here!
+Lf6fd               rts		; done
 				;
 				; (FIFO mode)
 				;
@@ -3586,8 +3645,8 @@ Lf6fe               ldx $ee	; get current position in FIFO list to X
                     lda #$ff	; \ store $ff in Xth entry in $0200 table
                     sta $0200,x	; / (unmark this in list?)
                     inc $ee	; increment position in FIFO list position
-                    lda #$61	; \ A=$61
-                    jsr Sfcff	; / [put value in table?]
+                    lda #$61	; \ 
+                    jsr Sfcff	; / put #$61 into event table (selection made?)
                     lda $ee	; get position in FIFO list to A
                     cmp #$c8	; compare to $c8 (200, maximum number of selections)
                     bcc Lf71d	; if A < 200, branch ahead
@@ -3633,13 +3692,14 @@ Lf742               lda $0200,x	;   get selection table value
 Lf74f               jsr Sf4b7	;     clear regular selection list 
                     jmp Lf761	;     jump down...
 Lf755               lda #$ff	;   \
-Lf757               sta $70	;    | store $ff in two variables
+Lf757               sta $70	;    | store $ff in two selection-related variables
 Lf759               sta $3c	;   /
-                    rts		; done here!
+                    rts		; done
+				;
 Lf75c               inx		;   next X
                     cpx #$c8	;   is X up to 200?
                     bcc Lf742	; loopback if not
-Lf761               lda #$00	; 
+Lf761               lda #$00	;	 
                     cmp $ea	; is $ea var 0?
                     beq Lf757	; if so, branch back 
                     cmp $f3	; is $ea var = $f3 var? (turntable motor flag?)
@@ -3651,59 +3711,74 @@ Lf76d               lda $e5	; get $e5 var
                     bcc Lf755	; loopback 
                     bcs Lf74f	; loopback to clear selection list
 				;
-				;*****************
-				; (mech related?)
-				;*****************
+				;********************
+				; handle record mech
+				;********************
 				;
-Sf775               lda $63	;
-                    bne Lf78b	;
+Sf775               lda $63	; get detent counter/timer?
+                    bne Lf78b	; skip down if it's not zero yet
+				;
+				; detent timer reached 0
+				; 
                     lda $2002	; get PIA1-B status
                     and #$02	; isolate bit 1 %0000 0010: DETENT output
-                    asl a	; shift left 
-                    sta $06	; store at $06 
+                    asl a	; shift left (?)
+                    sta $06	; store as temp var
                     lda $2002	; get PIA1-B status
-                    and #$fb	; clear bit 2 (%1111 1011)
-                    ora $06	; update $06
-                    sta $2002	; output to PIA1-B - MAGAZINE MOTOR OFF?
-Lf78b               dec $63	; decrement $63 counter
-                    lda $e8	; get $e8 var
-                    bne Lf7b8	; 
-                    lda $f3	; get $f3 flag (turntable motor flag?)
-                    bne Lf7ec	;
+                    and #$fb	; bitmask to clear bit 2 (%1111 1011)
+                    ora $06	; OR with temp var, clearing bit 2
+                    sta $2002	; output to PIA1-B - MAGAZINE MOTOR OFF
+				;
+				; detent timer running(?)
+				;
+Lf78b               dec $63	; decrement detent timer
+                    lda $e8	; get $e8 var (?)
+                    bne Lf7b8	; nonzero branch to jmp
+                    lda $f3	; get $f3 flag (turntable motor)
+                    bne Lf7ec	; if turntable is on, manage transfer
+				;
+				; when turntable is off
+				;
                     lda $68	; get PIA1-A status
                     and #$40	; %0100 0000 isolate bit 6: INNER CAM
                     beq Lf802	; if 0, turn off tranfer motor
-                    lda $39	; video mode boolean?
-                    bne Lf7b1	; branch if ___
+                    lda $39	; check video mode boolean(?)
+                    bne Lf7b1	; branch in video mode?
                     lda $031e	; get records/video setting
-                    bne Lf7bb	;
-                    lda $69	
-                    beq Lf7bb	;
-                    dec $85	
-                    bne Lf7ae	;
-                    dec $69	
-Lf7ae               jmp Lf864	;
-Lf7b1               lda $ed	
-                    bne Lf7bb	;
-Lf7b5               jmp Lf864	;
-Lf7b8               jmp Lf837	;
-Lf7bb               lda $f4	
-                    bne Lf7b5	;
+                    bne Lf7bb	; branch if records-only mode
+                    lda $69	; get $69 var (?) [stays $08 normally]
+                    beq Lf7bb	; branch if 0
+                    dec $85	; timer?
+                    bne Lf7ae	; skip next opcode if nonzero
+                    dec $69	;   timer?
+Lf7ae               jmp Lf864	; jump to 'transfer in progress'?
+				;
+				; video mode related?
+				;
+Lf7b1               lda $ed	; unknown var
+                    bne Lf7bb	; 
+Lf7b5               jmp Lf864	; jump to 'transfer in progress'?
+				;
+Lf7b8               jmp Lf837	; (extents a branch above)
+				;
+Lf7bb               lda $f4	; (transfer-related flag?)
+                    bne Lf7b5	; to 'transfer in progress'
                     lda $3c	; (selection-related flag?)
-                    beq Lf7b5	;
+                    beq Lf7b5	; to 'transfer in progress'
                     lda $35	; service/normal mode flag
-                    bne Lf7b5	; branch back to jmp in service mode
-                    lda $74	;
-                    bne Lf7de
-                    lda $e7
-                    beq Lf7de
-                    lda $f0
-                    beq Lf7de
-                    jsr Sf6d9	; 
-                    lda #$00	;
-                    sta $f0	;
-                    sta $e7	;
-                    beq Sf775	;
+                    bne Lf7b5	; in service mode, to 'transfer in progress'
+                    lda $74	; 
+                    bne Lf7de	;
+                    lda $e7	;
+                    beq Lf7de	;
+                    lda $f0	;
+                    beq Lf7de	;
+                    jsr Sf6d9	; check on the spinning magazine 
+                    lda #$00	; \
+                    sta $f0	;  } set 2 vars to 0
+                    sta $e7	; /
+                    beq Sf775	; always branch to top of mech routine
+				;
 Lf7de               lda #$00	; \ init $3c var to 0
                     sta $3c	; / (selection-related flag?)
                     jsr Sff5a	; turn on DETENT output
@@ -3757,7 +3832,7 @@ Lf828               lda $2002	; get PIA1-B status
                     bmi Lf837	; skip next opcode  based on bit 7 of PIA1-A (CANCEL)
                     rts		;   done here if bit 7 is clear
 				;
-				; end of record (or cancelled) mute & start transfer
+				; end of record (or cancel): mute amp & start transfer
 				;
 Lf837               lda #$ff	; \
                     sta $f4	;  | set $f0 and $f4 vars to $ff
@@ -3832,13 +3907,13 @@ Lf8a8               lda $36	; get keypress code
                     ldx $23	; get current entry position
                     sta $28,x	; store keycode on top LEDs
                     inc $23	; increment current entry position
-                    rts		; done here!
+                    rts		; 
 				; 
 				;*********************************
 				; UPDATE ALL MEMOREC PLAYS TABLES
 				;*********************************
 				;
-Sf8b1               jsr Sf95a	; [subroutine]
+Sf8b1               jsr Sf95a	; [do some background tasks]
                     lda #$00	; \
                     sta $76	;  |
                     lda #$05	;  | init $76/$77 pointer to $0500 (record selection table)
@@ -3884,14 +3959,14 @@ Lf8e1               lda $2c	;   get selection # (0-199)
 				; common code (records and video)
 				;
 Lf8fa               jsr Sf912	; update MEMOREC plays table
-                    lda #$60	; 
-                    jsr Sfcff	; [put $60 in event table]
+                    lda #$60	; \
+                    jsr Sfcff	; / put #$60 into event table
                     rts		; done
                     		;
 				;********************
 				; SWAP TABLE ENTRIES
 				;********************
-				;   (only used by $f912 sorting routine)
+				;   only used by sorting routine below
 				;
 Sf903               lda ($76),y	; get table value, offset by Y
                     pha		; push it
@@ -3933,7 +4008,7 @@ Lf91c               lda #$08	; \
 Lf92b               lda ($76),y	; get value from plays table
                     dec $06	; decrement $06 temp var(?)
                     bne Lf934	; skip next opcode unless $06 = 0
-                    jsr Sf95a	;   [keep doing "background" tasks while sorting table?]
+                    jsr Sf95a	;   [keep doing "background" tasks while sorting table]
 Lf934               dey		; move to next entry in tables
                     cpy #$ff	; did it wrap around?
                     bne Lf93a	; skip next opcode unless Y wrapped
@@ -3956,21 +4031,22 @@ Lf951               jsr Sf903	; swap table entries
                     dec $77	; (point back to plays table)
                     jmp Lf92b	; loopback
                     		;
-				;*****
-				; ???
-				;*****
+				;********************************
+				; perform some background tasks?
+				;********************************
 				; (preserves all registers & $2c variable?)
+				; (called from 4 places)
 				;
 Sf95a               pha		; \
                     txa		;  |
                     pha		;  | push all registers
                     tya		;  |
                     pha		; /
-                    lda $2c	; get $2c variable 
-                    pha		; push that variable
-                    jsr Sf646	; [calls 4 other subroutines]
-                    pla		; pull previously stored $2c variable
-                    sta $2c	; return to $2c
+                    lda $2c	; \ get $2c variable 
+                    pha		; / push that variable
+                    jsr Sf646	;   [calls 4 other basic function subroutines]
+                    pla		; \ pull previously stored $2c variable
+                    sta $2c	; / return to $2c
                     pla		; \
                     tay		;  |
                     pla		;  |pull X & Y back
@@ -3978,12 +4054,12 @@ Sf95a               pha		; \
                     lda #$14	; \ init var $06 to $14
                     sta $06	; /
                     pla		; pull A back
-                    rts		; done here
+                    rts		; 
                     		;
 				;*****
-				; ???  (record-mode CCC operations?)
+				; (record-mode CCC buttons/switches?)
 				;*****
-				; (entry is actually $f975)
+				; (main entry is actually $f975)
 				;
 Lf972               jmp Lfa32	; (to video mode code?)
 				;
@@ -4084,9 +4160,9 @@ Lfa21               txa		; X->A
                     jsr Sfb23	; fill RAM with sequential values
                     rts		; done
                     		;
-				;*****
-				; ???   (video-mode CCC operation handling?)
-				;*****
+				;***************************************
+				; video-mode CCC button/switch handling?
+				;***************************************
 				;
 Lfa32               lda #$e3	; \
                     sta $76	;  | 
@@ -4165,44 +4241,55 @@ Lfa90               sta $24	; put A in $24 var
                     sta $86	;   / init $86 var to $ff
 				;
 Lfab8               dec $77	; decrement MSB of pointer $77 (back to original?)
-                    lda #$41	; offset for output
-                    sta $26	; (output will be at $5c-$5f) CCC LED digits
+                    lda #$41	; \ 
+                    sta $26	; / direct output to $5c-$5f: CCC LED digits
                     jsr See45	; convert 2-byte number to 4 digits
-                    lda $5e	; get one of the output digits
-                    bne Lfac9	; if non-zero skip down
-                    lda #$0e	;   [if 0] code for blank digit
-                    sta $5e	;   make digit blank (supress leading 0?)
-Lfac9               lda $60	; get another digit
+				;
+				; supress leading 0s on CCC readouts
+				;
+                    lda $5e	; get left-most LED digits
+                    bne Lfac9	; if non-zero digit, skip down
+                    lda #$0e	;   [if digit 0] charcode for a blank digit
+                    sta $5e	;   make digit blank (supress a leading 0)
+Lfac9               lda $60	; get 3rd LED digit (leading digit of 2nd pair)
                     bne Lfad1	; skip ahead if not 0
-                    lda #$0e	;   if 0, code for blank digit
-                    sta $60	;   make digit blank (supress leading 0?)
+                    lda #$0e	;   if digit 0, charcode for a blank digit
+                    sta $60	;   make digit blank (supress leading 0)
+				;
 Lfad1               inc $76	; increment LSB of pointer
                     lda #$ff	; \ init $71 var to $ff
                     sta $71	; / 
                     lda #$03	; \ init $73 var to $03
                     sta $73	; /
-                    lda $43	; get $43 var (most/least switch flag?)
-                    bne Lfaee	; branch forward if ___
+                    lda $43	; get $43 var (most/least switch flag)
+                    bne Lfaee	; branch forward if set to "MOST"
+				;
+				; switch on "LEAST" 
+				;
                     dec $76	;   decrement $76 var
                     dec $76	;   ...twice
-                    lda $76	;   get decremented $76 var
-                    cmp #$fe	;   compare it to $fe
-                    beq Lfaf4	;   if $76 var = $fe branch ahead
-                    cmp #$7e	;   compare it to $7e
-                    beq Lfaf4	;   if $76 var = $7e branch ahead
-                    rts		;   done here!
+                    lda $76	;   get the twice-decremented $76 var
+                    cmp #$fe	;   
+                    beq Lfaf4	;   if $76 var = #$fe branch ahead
+                    cmp #$7e	;   
+                    beq Lfaf4	;   if $76 var = #$7e branch ahead
+                    rts		;   done
+				;
+				; switch on "MOST"
+				;
 Lfaee               lda $76	; get $76 var
                     cmp #$e5	; compare to $e5
                     bcc Lfaf9	; branch ahead if $76 var < 229
 Lfaf4               lda #$00	;   \ init $72 var to 0
                     sta $72	;   /
                     rts		;   done
+				;
 Lfaf9               lda #$f0	; %1111 0000
                     sta $4002	; write to PIA2-B: sel=[110]=D6=S4= ADVANCE button
                     lda #$02	; %0000 0010
                     and $4000	; read CCC ADVANCE button via PIA2-A
                     beq Lfb06	; skip next opcode if pressed
-                    rts		;   not pressed, RTS
+                    rts		;   not pressed, rts
 Lfb06               lda $fe	; get $fe var
                     clc		; clear carry flag
                     beq Lfb10	; branch down if $fe = 0
@@ -4213,7 +4300,7 @@ Lfb10               adc $fc	; A=A+$fc + carry flag
                     adc #$01	; A=A+1
                     cmp $76	; compare to $76 var
                     bcc Lfaf4	; loopback if A < $76 var
-                    rts		; done here!
+                    rts		; done
                     		;
 				;********************
 				; FILL RANGE WITH 0s
@@ -4309,14 +4396,14 @@ Lfb79               rts		; done here
 				; wallbox comm?
 				;***************
 				;
-Lfb7a               jsr Sfb4a	; (set $0a var based on $78 var?)
+Lfb7a               jsr Sfb4a	; set A & $0a var based on $78 boolean var(?); a PIA "base" value
                     sta $4000	; write to PIA2-B ("ping" for a wallbox?)
                     lda $4000	; read PIA2-B
                     ora $4000	; again?
                     and #$10	; %0001 0000 isolate bit 4: wallbox serial in
                     bne Lfb99	; branch down if bit high
                     jsr Sef4d	;   1ms delay
-                    ldy #$06	;   error code 6 - wallbox stuck high?
+                    ldy #$06	;   set error code 6 - wallbox stuck high?
 Lfb8f               sty $6b	;   error code storage variable
                     lda $35	;   get $35 var (service/normal mode flag?)
                     bne Lfb98	;   skip next opcode unless $35 var = 0 (in service mode?)
@@ -4471,31 +4558,34 @@ Sfca4               dex		; \ brief delay based on X
 				;*************************
 				; OUTPUT BYTE OVER SERIAL
 				;*************************
-				;   $0a (init value of PIA2-B register??)
-				;   $0c sets delay timing (delay loops) [baud rate]
-				;   $b1+X is byte to send out by serial(?)
+				;  $0a   (initial value of PIA2-B register)
+				;  $0c   a loop constant that sets the baud rate
+				;  $b1,X is the byte to send out by serial comms [only called w/X=0]
+				;  only called by "InterROWEgator" subroutine
 				;
 Sfcad               lda #$0a	; \
-                    sta $0b	; / init $0b counter to 10
-                    lda $0a	; get variable $0a
-                    sec		; set carry flag
-                    bcs Lfcba	; alway branch ahead?
+                    sta $0b	; / init counter to 10 (total # of bits, with start & stop bits)
+                    lda $0a	; get initial value of PIA2-B
+                    sec		; set carry flag (for the start bit)
+                    bcs Lfcba	; branch into middle of loop to send the start bit
 				;
-Lfcb6               lda $0a	; get $0a temp var [alt entry point]
-                    bcs Lfcbc	;   skip next opcode if carry flag set
-Lfcba               ora #$04	;     set bit 2 of A (which was $0a var)
-Lfcbc               sta $4000	;   (wallbox?) serial out
-                    bcs Lfcc1	;   branch if carry flag set (to next instruction?)
-Lfcc1               nop		;   no op (micro delay)
-                    ldy $0c	;   get delay loop length parameter
-                    nop		;   no op (micro delay)	; 2 cycles \
-Lfcc5               dey		;     Y=Y-1		; 2 cycles  > 7 cycles per loop
+				; top of 10-bit serial transmit loop
+				;
+Lfcb6               lda $0a	; fetch initial PIA2-B register value
+                    bcs Lfcbc	; skip next opcode if carry flag set ("space")
+Lfcba               ora #$04	; if carry is clear, raise bit 3 of PIA2-B 
+Lfcbc               sta $4000	; output bit to "wallbox" serial (InterROWEgator connected to wallbox plug) 
+                    bcs Lfcc1	; branch _to_next_instruction if carry set [an attmpt at timing adjustment?]
+Lfcc1               nop		; no op (micro delay)
+                    ldy $0c	; get delay loop (baud rate) parameter
+                    nop		;   micro delay		; 2 cycles \
+Lfcc5               dey		;   countdown		; 2 cycles  } 7 cycles per loop
                     bne Lfcc5	;   loopback until Y=0	; 3 cycles /
-                    ror $b1,x	;   rotate output byte right (moving bit 0 to carry flag)
-                    dec $0b	;   decrement counter $0b (started at 10)
-                    bne Lfcb6	; loopback until counter is 0
-                    rol $b1,x	; rotate a memory byte on page 0 back left?
-                    rts		; done here!
+                    ror $b1,x	; rotate least signficant bit into the carry flag [X=0, from calling code]
+                    dec $0b	; decrement bit counter
+                    bne Lfcb6	; loopback until counter is 0 (start bit + 8 data bits + stop bit)
+                    rol $b1,x	; rotate byte back left (leave it as it started? doesn't appear to matter)
+                    rts		; 
 				;
 				;************************************
 				; copy Y values from $06/$07 pointer
@@ -4511,38 +4601,40 @@ Sfcd1               lda ($06),y	; get A from $06/$07 pointer offset by Y
 				;*****
 				; ???
 				;*****
+				;  appears to use a 0-page table $b1-$b4? (serial out data?)
 				;
-Lfcda		    lda #$02	; A=2 (alt entry) [never used??]
+				;
+Lfcda		    lda #$02	; A=2 (alt entry) [never used?]
 		    bne Lfce4	; always branch
 				;
-Lfcde               lda #$00	; A=0 (main entry) (reached only by jmp)
-                    beq Lfce4	; always branch
+Lfcde               lda #$00	; A=0 (main entry) (1 jsr from wallbox code, 1 jmp)
+                    beq Lfce4	; always branch over next opcode
 				;
-Lfce2               lda #$01	; A=1 (alt entry) (reached only by jmp)
+Lfce2               lda #$01	; A=1 (alt entry) (reached only by jmp below)
 				;
 Lfce4               clc		; clear carry flag
-                    adc #$03	; A=A+3 [A = 3 or 4]
-                    sta $b2	; store A to $b2 var [3 or 4]
-                    tax		; A->X \
-                    tay		; A->Y / (all registers now have same value, 3 or 4)
+                    adc #$03	; A is now 3 or 4 (depending on entry point above)
+                    sta $b2	; store as $b2 var
+                    tax		; \ (all 3 registers now have same value: 3 or 4)
+                    tay		; / 
                     dex		;
-                    dex		; X=A-2 [X is now 1 or 2]
-                    dey		; Y=A-1 [Y is now 2 or 3]
-                    lda #$00	; 
-                    sta $b0	; init $b0 var and A to 0
-Lfcf2               clc		; clear carry
-                    adc $b1,x	;   A=A+ var at $b1+x [X was 1 or 2 before this loop]
+                    dex		; X is now 1 or 2
+                    dey		; Y is now 2 or 3
+                    lda #$00	; \
+                    sta $b0	; / $b0 var & A to 0
+Lfcf2               clc		; clear carry for addition
+                    adc $b1,x	;   A = var at $b1+x [X was 1 or 2 before this loop]
                     dex		;   decrement X counter
                     bpl Lfcf2	; loopback until X wraps under 0
                     eor #$ff	; flip every bit of A	\
                     tax		; A->X			 calculates 2's complement of A to X
-                    inx		; increment X		/ (signed binary #)
+                    inx		; increment X		/ (signed binary number)
                     stx $b1,y	; store at $b1+y (one past $b1+x)
                     rts		;
 				;
-				;*****
-				; ???
-				;*****
+				;*******************************
+				; put value into "event" table?
+				;*******************************
 				;   subroutine appears to take A as input
 				;   A values used by calling locations include: 
 				;     $01, $08, $40, $60, $61, $62, $7c, $e0 
@@ -4550,41 +4642,44 @@ Lfcf2               clc		; clear carry
 Sfcff               ldx $0171	; get offset to X register (table pointer)
                     sta $0100,x	; store A on page 1, offset by X
                     inx		; increment X offset
-                    cpx #$90	; compare X to $90 (1 past end of table)
-                    bcc Lfd0c	; branch if X < $90 skip next opcode
-                    ldx #$72	;   if X >= $90, then X=$72 (back to start of table)
-Lfd0c               cpx $0170	; compare X to variable at $0170
+                    cpx #$90	; compare to end of table
+                    bcc Lfd0c	; branch if not past end of table
+                    ldx #$72	;   wrap back to start of table if needed
+Lfd0c               cpx $0170	; compare X to $0170
                     beq Lfd14	; if equal branch to rts
-                    stx $0171	;   otherwise store X at varialbe $0171
+                    stx $0171	;   otherwise store updated table index
 Lfd14               rts		; done here!
 				;
 				;*****
 				; ???
 				;*****
 				;
-Sfd15               ldx $0170	; get a page-1 variable
-                    cpx $0171	; compare to another
+Sfd15               ldx $0170	; event table index?
+                    cpx $0171	; compare to duplicate index?
                     beq Lfd29	; if they're equal, skip down
-                    lda $0100,x	;   retrieve value from page-1 table
+				;
+				; if $0170 != $0171
+				;
+                    lda $0100,x	;   retrieve last value in event table (per $0170)
                     sta $b1	;   save it at $b1
-                    cmp #$40	;   compare it to $40
+                    cmp #$40	;   compare it to 64
                     bcs Lfd44	;   branch down if it is >= $40
-                    jmp Lfcde	;   otherwise jmp to handle A < $40
+                    jmp Lfcde	;   otherwise jmp (if A < $40)
 				;
 				; if $0170 == $0171
 				;
 Lfd29               ldx $5a	; get $5a var
                     beq Lfd3a	; branch down if 0
-                    lda #$04	;   A=4
+                    lda #$04	;   (table entry value) (magazine-related?)
                     dec $5a	;   decrement counter $5a
                     beq Lfd37	;   if counter 0 skip down
                     dec $5a	;     decrement counter $5a again
-                    lda #$08	;     A=8
-Lfd37               jsr Sfcff	; put A into page 1 table
+                    lda #$08	; \  
+Lfd37               jsr Sfcff	; / put $#04 or $#08 into event table?
 Lfd3a               lda $9e	; 
                     beq Lfd43	;
-                    lda #$62	;
-                    jsr Sfcff	; put A into page 1 table
+                    lda #$62	; \
+                    jsr Sfcff	; /put #$62 into event table? (cancel-related?)
 Lfd43               rts		;
 				;
 Lfd44               cmp #$60	; A = $60?
@@ -4620,7 +4715,7 @@ Lfd7c               cmp #$7c	; A = $7c?
                     bne Lfd8c	; if not, branch to next check...
                     ldx #$00	;   LSB of pointer of 0 ($0300)
 Lfd82               ldy #$09	;   Y=9 number of bytes to copy (pricing settings)
-                    jsr Sfde3	;   finish setting and do RAM copy
+                    jsr Sfde3	;   copy Y bytes from page 3 to page 0 area
 Lfd87               lda #$0a	;   A=$0a
                     jmp Lfce4	;   jump back up
 				;
@@ -4632,7 +4727,7 @@ Lfd8c               ldx #$0a	; X=$0a (LSB -> $030a video pricing)
 				;
                     ldy #$03	; Y=3 number of bytes to copy
                     ldx #$1c	; LSB of pointer: $031c (several unrelated settings)
-                    jsr Sfde3	; finish setting and do RAM copy
+                    jsr Sfde3	; copy Y bytes from page 3 to $b3-$b6
                     lda $031b	; get freeplay setting (255 or 0)
                     sta $b3	; copy it to $b3
                     lda $fc	; \ get $fc var
@@ -4663,37 +4758,38 @@ Lfdc0               tya		;   copy Y to A ($ff if slot empty, otherwise a value)
 Lfdce               cmp #$7f	; A = $7f?
                     bne Lfded	; if not, branch to more checks...
                     ldy #$09	;   Y=9 (number of bytes to copy)
-                    ldx #$2d	;   LSB of pointer; $032d (unused locations?)
+                    ldx #$2d	;   LSB of pointer; $032d
                     jsr Sfde3	;   finish setting up and do RAM copy
                     ldy #$04	;   Y=4 (number of bytes to copy)
-                    ldx #$25	; LSB of pointer; $0325 (unused locations?)
+                    ldx #$25	; LSB of pointer; $0325 (wallbox related?)
                     jsr Sfde3	; finish setting up and do RAM copy
-                    jmp Lfd87	;
+                    jmp Lfd87	; jump back up to (?)
 				;
-				;******************************
-				; finish setting up a RAM copy
-				;******************************
-				;   based on X (LSB of pointer)
-				;   and Y (number of bytes)
-				;   pointer MSB fixed to $03
+				;********************************
+				; COPY BYTES FROM PAGE 3 TO $B3-
+				;********************************
+				;   X: LSB of source pointer (start point)
+				;   Y: number of bytes to copy (3, 4 & 9 are used)
+				;   (source ptr MSB fixed to $03; RAM page 3)
+				;   dest: $00b3 to $00b3+Y
 				;
 Sfde3               stx $06	; set LSB of pointer from X
-                    lda #$03	; 
-                    sta $07	; pointer MSB is $03 (programmable settings page)
+                    lda #$03	; \
+                    sta $07	; / pointer MSB (programmable settings page)
                     jsr Sfcd1	; RAM copy Y bytes from $06/$07 pointer to $00b3-
-                    rts		; done here!
+                    rts		; done
                     		;
 				;*****
 				; ???
 				;*****
 				; takes action based on contents of A
-				; commands? modes? $62, $e0, $e1, $e2
+				; (commands? modes? $62, $e0, $e1, $e2)
 				; (continued from above)
 				;
 Lfded               cmp #$62	; A = $62? 
                     bne Lfe0f	; if not, branch down to next check...
                     lda $9e	;   get $9e var
-                    ldx $c9	;   get (selection # to be played?)
+                    ldx $c9	;   get selection # to be played(?)
                     stx $b3	;   copy it to $b3 var
                     sta $b4	;   copy $9e var to $b4 var
                     cpx $ca	;   compare $c9 var to 202(?)
@@ -4706,6 +4802,7 @@ Lfded               cmp #$62	; A = $62?
                     ldx #$ff	;       \ set $ca var to $ff
                     stx $ca	;       /
 Lfe0c               jmp Lfd77	;   jump back up
+				;
 Lfe0f               cmp #$e0	; A = $e0?
                     bne Lfe18	; if not, branch to next check...
                     lda $a0	;   get $a0 var
@@ -4716,12 +4813,13 @@ Lfe18               cmp #$e1	; A = $e1?
                     sta $b3	;   copy it to $b3(?)
                     lda $2002	;   get PIA1-B output status
                     jmp Lfd75	;   jump back up
+				;
 Lfe26               cmp #$e2	; A = $e2?
-                    bne Lfe31	; if not, branch to next end...
+                    bne Lfe31	; if not, branch to rts...
                     ldy #$00	;   \
                     lda ($c2),y	;   / get A from $c2/$c3 pointer (0 offset)
                     jmp Lfd4a	;   jump back up
-Lfe31               rts		; done here!
+Lfe31               rts		; done
                     		;
 				; take action based on $c0 variable
 				;
@@ -4790,15 +4888,15 @@ Lfea8               cmp #$25	; compare A to $25 (37)
 				;
 				; put $7c, $7d, $7e, $7f, $60, $40 into event table
 				;
-Sfeac               lda #$7c	;   init A=$7c [alt. entry point; used once]
-Lfeae               jsr Sfcff	;   [put A value into page 1 table?]
+Sfeac               lda #$7c	;   [alt. entry point; used once]
+Lfeae               jsr Sfcff	;   put #$7c value into event table?
                     clc		;     clear carry flag for addition
                     adc #$01	;     A=A+1
-                    bpl Lfeae	;   loopback if bit 7 if low (A<$80)
-                    lda #$60	;   A=$60	
-                    jsr Sfcff	;   [put value in event table]
-                    lda #$40	;   A=$40
-Lfebd               jsr Sfcff	;   [put value in event table]
+                    bpl Lfeae	;   loopback A<$80 (puts #$7d, #$7e, #$7f into event table)
+                    lda #$60	;   \	
+                    jsr Sfcff	;   / put #$60 into event table (selection-related?)
+                    lda #$40	;   \
+Lfebd               jsr Sfcff	;   / put #$40 into event table (idle-related?)
                     rts		;   done 
 				;
 Lfec1               cmp #$f0	; compare A to $f0 (240)
@@ -4820,46 +4918,46 @@ Lfed3               cmp #$f1	; compare A to $f1 (241)
 Lfede               cmp #$f2	; compare A to $f2 (242)
                     bne Lff02	; if not, skip ahead to next check...
 Lfee2               jsr Sf21b	;   read keypad
-                    lda $36	;   get keycode
-                    bmi Lfee2	;   loopback if no keypress
-                    cmp #$0a	;   was keypress "RESET"?
+                    lda $36	;     get keycode
+                    bmi Lfee2	;   tight loopback until any key is pressed
+                    cmp #$0a	;   was the keypress "RESET"?
                     bcc Lfef4	;   if not, branch?
                     clc		;     clear carry flag
                     beq Lfef2	;     branch if 0 key pressed?
                     adc #$01	;       A=A+1
 Lfef2               adc #$03	;     A=A+3
-Lfef4               jsr Sff37	;   put A digit on all LEDs?
-                    jsr Se453	;   update LEDs
-Lfefa               jsr Sf21b	;   read keypad
-                    lda $47	;   check debounce counter?
-                    bne Lfefa	;   loopback unless 0
-                    rts		;   done here!
+Lfef4               jsr Sff37	;   put A digit on all LEDs (using most of clear LED code)
+                    jsr Se453	;   update LED display controllers
+Lfefa               jsr Sf21b	;   read keypad			\
+                    lda $47	;     check debounce counter     } wait for any keypress
+                    bne Lfefa	;   loopback until debounced	/
+                    rts		;   done
 				;
 Lff02               cmp #$f3	; compare A to $f3 (243)
                     bne Lff10	; if not, skip to next check...
-Lff06               ldy #$10	;   set table offset for following subroutine
-                    jsr Se435	;     put 888s on all LEDs?
-                    dec $c2	;     decrement $c2 counter/pointer
-                    bne Lff06	;   loopback
+Lff06               ldy #$10	;   set loop counter to do all 16 LEDs 
+                    jsr Se435	;     put 888s on all LEDs
+                    dec $c2	;     decrement $c2 counter(?)
+                    bne Lff06	;   loopback untip $c2 var is 0
                     rts		;   done
 				;
-Lff10               cmp #$f4	; compare A to $f4 (244)
+Lff10               cmp #$f4	; compare to $f4 (244)
                     bne Lff18	; if not, skip to next check...
-                    lda #$e1	;   A=$e1
-                    bne Lfebd	;   unconditional branch
+                    lda #$e1	;   \
+                    bne Lfebd	;   / (unconditional) put $e1 into event table & rts
 				;
-Lff18               cmp #$f5	; compare A to $f5 (245)
+Lff18               cmp #$f5	; compare to $f5 (245)
                     bne Lff21	; if not, skip to next check...
-                    lda #$00	;   A=0
-                    sta $f3	;   init var $f3 (turn off turntable motor?)
+                    lda #$00	;   \
+                    sta $f3	;   / $f3 var = 0 (turntable motor boolean?)
                     rts		;   done
 				;
-Lff21               cmp #$f6	; compare A to $f6 (246)
+Lff21               cmp #$f6	; compare to $f6 (246)
                     bne Lff29	; if not, skip to next check...
-                    lda #$e2	;   A=$e2 (226)
-                    bne Lfebd	;   loopback (far)
+                    lda #$e2	;   \
+                    bne Lfebd	;   / branch back to put $e2 into event table & rts
 				;
-Lff29               cmp #$f7	; compare A to $f7 (247)
+Lff29               cmp #$f7	; compare to $f7 (247)
                     bne Lff30	; if not, skip to rts
                     jsr Sef18	;   update RAM checksum
 Lff30               rts		; done
@@ -4874,74 +4972,77 @@ Sff31               lda #$0e	; blank digit code
 				;************************
 				; CLEAR ALL LED DISPLAYS
 				;************************
-				;   TOP & CCC LEDs
-				;     (clears data from RAM only
-				;      does not send bits to LED controllers)
-				;     (called from 3 places)
+				;   both top and CCC LEDs
+				;   (clears data from RAM only
+				;   does not send bits to LED controllers)
+				;   (called from 3 places)
 				;
 Sff35               lda #$0e	; A=$0e [blank digit code for LEDs]
 Sff37               sta $5e	; \
-                    sta $5f	;  | $5e-$61... (CCC LEDs)
+                    sta $5f	;  | all 4 CCC digits
                     sta $60	;  |
                     sta $61	; /
-Lff3f               sta $28	; \ $28-$2A (top "SELECTION BEING MADE" LEDs)
-                    sta $29	;  |
+Lff3f               sta $28	; \ 
+                    sta $29	;  } 3 top "SELECTION BEING MADE" digits
                     sta $2a	; / 
-                    ldx #$0b	; init counter/offset X = $0b
+                    ldx #$0b	; init counter/offset to 11
 Lff47               sta $8b,x	; loop to init RAM variables to $0e
-                    dex		;   $8b-$96 (blank all of the other top LEDs)
-                    bpl Lff47	; loopback until result goes past $00
-                    rts		; done here!
+                    dex		;   blank the remaining top digits
+                    bpl Lff47	; loopback until X wraps
+                    rts		; 
 				;
-				;****************************
-				; turn off the DETENT output
-				;****************************
+				;************
+				; DETENT OFF
+				;************
 				; 
 Sff4d               lda $2002	; get PIA1-B
                     and #$fd	; clear bit 1 %1111 1101 [output low; inverted; inactive/high oupout]
                     sta $2002	; output to PIA1-B
-                    lda #$12	; A=$12
-                    sta $63	; store in variable $63
-                    rts		; done here
+                    lda #$12	; 
+                    sta $63	; set detent counter/timer
+                    rts		; 
                     		;
-				;***************************
-				; turn on the DETENT output
-				;***************************
+				;***********
+				; DETENT ON
+				;***********
 				; 
 Sff5a               lda $2002	; get PIA1-B
                     ora #$02	; set bit 1 %0000 0010 [output high; inverted; active low output]
                     sta $2002	; output to PIA1-B
-                    lda #$12	; A=$12
-                    sta $63	; store in variable $63
-                    rts		; done here
+                    lda #$12	; 
+                    sta $63	; set detent counter/timer
+                    rts		; 
                     		;
-				;***********************************************
-				; zero out $00-$af then initialize 10 variables
-				;***********************************************
+				;**********************
+				; INITIALIZE VARIABLES
+				;**********************
+				; zeros much of page 0, inits some variables
+				; only called at boot time
 				;
-Sff67               lda #$00	; A=0		     \
-                    ldx #$af	; X=$af		      \
-Lff6b               sta $00,x	; zero out variable    zeros out $00-$af
-                    dex		; X=X-1		      /
-                    bne Lff6b	; loopback until X=0 /
-                    sta $00,x	; zero out one last time 
-                    ldy #$09	; Y=9		    \
-Lff74               lda $ff98,y	; lookup table in ROM\
-                    tax		; A->X, use as offset \ 
-                    lda $ffa2,y	; get value from table init 10 variables on zero-page 
-                    sta $00,x	; put A into RAM      /RAM with values from ROM table
-                    dey		; Y=Y-1		     /
-                    bne Lff74	; loopback til Y=0  /
-                    lda $0321	; get autoplay time setting
-                    sta $fa	; init autoplay timer
-                    rts		; done here
+Sff67               lda #$00	; \
+                    ldx #$af	;  \
+Lff6b               sta $00,x	;   } zeros out $00-$af
+                    dex		;  /
+                    bne Lff6b	; /
+                    sta $00,x	; zero out one last byte [suboptimal loop design?]
+                    ldy #$09	; \
+Lff74               lda $ff98,y	;  \
+                    tax		;   \  init 10 variables
+                    lda $ffa2,y	;    } on zero-page RAM 
+                    sta $00,x	;   /  with table values
+                    dey		;  /
+                    bne Lff74	; /
+                    lda $0321	; get autoplay time setting (in minutes)
+                    sta $fa	; init the autoplay timer
+                    rts		; 
 				;
-				;***********************************
-				; DATA TABLE: CHECKING MONEY INPUTS
-				;***********************************
+				;**********************************
+				; DATA TABLE: READING MONEY INPUTS
+				;**********************************
+				; list of values used to read money inputs
 				;
 Lff86               00 35 39 3d 31 3f
-				; list of values used to read money inputs
+				; 
 				; 3f= 0011 1111 [111] selects D7 (dollar bill reader)
 				; 31= 0011 0001 [000] selects D0 (50-cent)
 				; 3d= 0011 1101 [110] selects D3 (25-cent)
@@ -4951,9 +5052,10 @@ Lff86               00 35 39 3d 31 3f
 				;****************************
 				; DATA TABLE: READING KEYPAD
 				;****************************
+				; ref. $f221, selects each keypad input via PIA2-B
 				;
 Lff8c		    7d 7c 78 74 7f 73 72 76 7a 79 75 71
-				; (ref. $f221, selects each keypad input via PIA2-B)
+				; 
 				;     rrxx sssr
 				; 7d= 0111 1101 selects (011) D3 rtn, (100) S4, "0" key
 				; 7c= 0111 1100 selects (010) D2 rtn, (100) S4, "1" key
@@ -4965,8 +5067,8 @@ Lff8c		    7d 7c 78 74 7f 73 72 76 7a 79 75 71
 				; 76= 0111 0110 selects (010) D2 rtn, (010) S2, "7" key
 				; 7a= 0111 1010 selects (010) D2 rtn, (001) S1, "8" key
 				; 79= 0111 1001 selects (011) D3 rtn, (101) S5, "9" key
-				; 75= 0111 0101 selects (011) D3 rtn, (110) S6, "RESET"
-				; 71= 0111 0001 selects (011) D3 rtn, (111) S7, "POPULAR"
+				; 75= 0111 0101 selects (011) D3 rtn, (110) S6, "RESET" key
+				; 71= 0111 0001 selects (011) D3 rtn, (111) S7, "POPULAR" key
 				;
 				;*************************************
 				; DATA TABLE: VARIABLE INITILIZATIONS
@@ -4974,10 +5076,11 @@ Lff8c		    7d 7c 78 74 7f 73 72 76 7a 79 75 71
 				;
 Lff98               00 3a 42 62 64 69 74 83 b0 bf	; list of zero-page addresses
 Lffa2		    00 12 0b 3c ff 08 64 3c 80 80	; list of initial values
-				; location $3a (init $12) is a timer for pulses of the coin-counter
+				;
+				; location $3a (init $12) is a timer for pulsing the coin-counter
 				; location $42 (init $0b) is a counter/timer for the transfer mechanism
 				; location $62 (init $3c) is a seconds countdown timer
-				; location $64 (init $ff) (no use apparent yet)
+				; location $64 (init $ff) (unknown use)
 				; location $69 (init $08) (unknown use, possibly video related)
 				; location $74 (init $64) (unknown use, possibly magazine/opto related)
 				; location $83 (init $3c) is a seconds countdown timer used for autoplay mode
@@ -4988,18 +5091,20 @@ Lffa2		    00 12 0b 3c ff 08 64 3c 80 80	; list of initial values
 				; DATA TABLE: FACTORY SETTINGS
 				;******************************
 				;
-Lffac		    00 00 01 02 03 04 05 06 08 09 0a 0b 0e 0f 10 13	; table of offsets into $0300
+Lffac		    00 00 01 02 03 04 05 06 08 09 0a 0b 0e 0f 10 13	; offsets into $0300
                     14 15 16 17 18 19 1c 1e 20 21 2b 39 		; (programmable memory)
 				;	
-Lffc8		    00 05 0a 0f 14 64 01 02 05 1e 0a 14 64 01 02 0a	; table of values copied to $0300-$0339(?) RAM
+Lffc8		    00 05 0a 0f 14 64 01 02 05 1e 0a 14 64 01 02 0a	; values copied to RAM
 		    01 02 05 0a 14 05 ff ff 02 14 1e ff 		; (factory settings for programmable features)
 				;
 				;*******************************
 				; DATA TABLE: COUNTER LOCATIONS
 				;*******************************
+				; table of offsets into $0200
 				;
 Lffe4               ec ee e6 e8 ea d8 da dc de e0 e2 e4 f0 fe
-				; table of offsets into $0200 (money/play counters?)
+				;
+				; code loc    function 
 				; 500: 02ec = total record selections w/popular button
 				; 501: 02ee = total record selections
 				; 502: 02e6 = total video selections w/popular button
@@ -5015,8 +5120,6 @@ Lffe4               ec ee e6 e8 ea d8 da dc de e0 e2 e4 f0 fe
 				; 512: 02f0 = total wallbox money (in nickels?)
 				; 513: 02fe = total money (not resettable) (nickels?)
 				;
-Lfff2                     ff ff ff ff ff ff ff ff			; [apparently extra/unused bytes]
-
-Lfffa		                                  f2 e1 f2 e1 f2 e1 	; IRQ/NMI/reset vectors
-
-
+Lfff2                     ff ff ff ff ff ff ff ff			; [8 extra/unused bytes]
+				;
+Lfffa		                                  f2 e1 f2 e1 f2 e1 	; 6502 vectors
