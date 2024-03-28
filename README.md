@@ -29,6 +29,8 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
   - **basic_info.txt** - provides a brief description of the CCC's notable electronic hardware components; a high-level memory map of the CCC; and a short explaination of how a 6502 CPU starts up, which provides an entry point into the CCC's EPROM code.
     
   - **R-93_CCC_schematic.png** - an electronic schematic diagram of a CCC circuit board.  This is from an R-93, which is believed to be electronically identical (or nearly so) to the PCBs used for the entire R-89 thru R-94 series (as well as the R-88 video model).
+
+  - **R-89_CCC_assembly.jpg** - a CCC unit assembly.  The CCC PCB is enclosed in the plastic housing.  The connector labels, switch labels, and button labels, and LED readout labels are are visible.  This CCC is installed into a jukebox with a bill validator (P3 connector), but no video system (P5 connector) or wallboxes (P4 connector).
     
   - **rowem** (directory) - files for the rowem CCC emulator.  See readme file in that directory for more information of those files.
-  -  
+    
