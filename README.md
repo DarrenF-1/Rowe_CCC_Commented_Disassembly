@@ -10,7 +10,7 @@ While my project focuses on the R-89 model jukebox (because that's what I own), 
 
 The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn may facilitate hacks/modifications/improvements/add-ons/upgrades/homebrew versions/etc.
 
-COMMENTED DISSASSEMBLY PROJECT STATUS: ~60% complete
+> COMMENTED DISSASSEMBLY PROJECT STATUS: ~60% complete
 
 ## Sub-Projects
 
@@ -20,7 +20,7 @@ There will also be sub-projects, undertaken to support the main purpose.  For ex
 
 Another sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a helpful tool to help build and verify understanding of the 6502 code function (especially variable/RAM use).  It will also be helpful to do simulated testing of future EPROM code modifications.  It could potentially be much more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.  Some of these features may be added in the future.
 
-EMULATOR PROJECT STATUS: v0.1 FUNCTIONAL AND RELEASED.  PLENTY OF OPPROTUNITY TO ADD FEATURES AND OTHER IMPROVEMENTS.
+> EMULATOR PROJECT STATUS: v0.1 FUNCTIONAL AND RELEASED.  PLENTY OF OPPROTUNITY TO ADD FEATURES AND OTHER IMPROVEMENTS.
 
 ### Note
 
