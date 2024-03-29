@@ -1,4 +1,5 @@
 # Rowe_CCC_Commented_Disassembly
+
 My project to understand and comment a disassembly of my Rowe R-89 jukebox CCC code.
 
 The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brains" are the "CCC" or "Central Control Computer".  The CCC is a simple 8-bit embedded computer, with a 6502 microprocessor, two 6520 PIA I/O ICs, 2KB of battery-backed CMOS RAM, and code (and data) programmed to an EPROM.  This project is primarily about documenting how the code (and data) on the EPROM functions.
@@ -9,6 +10,8 @@ While my project focuses on the R-89 model jukebox (because that's what I own), 
 
 The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn may facilitate hacks/modifications/improvements/add-ons/upgrades/homebrew versions/etc.
 
+COMMENTED DISSASSEMBLY PROJECT STATUS: ~60% complete
+
 ## Sub-Projects
 
 There will also be sub-projects, undertaken to support the main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential (the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.) and some are quite optional (the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC, etc.).  In any case, better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
@@ -16,6 +19,8 @@ There will also be sub-projects, undertaken to support the main purpose.  For ex
 ### Emulator
 
 Another sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a helpful tool to help build and verify understanding of the 6502 code function (especially variable/RAM use).  It will also be helpful to do simulated testing of future EPROM code modifications.  It could potentially be much more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.  Some of these features may be added in the future.
+
+EMULATOR PROJECT STATUS: v0.1 FUNCTIONAL AND RELEASED.  PLENTY OF OPPROTUNITY TO ADD FEATURES AND OTHER IMPROVEMENTS.
 
 ### Note
 
