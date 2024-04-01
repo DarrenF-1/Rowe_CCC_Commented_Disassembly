@@ -10,11 +10,11 @@ While my project focuses on the R-89 model jukebox (because that's what I own), 
 
 The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn may facilitate hacks/modifications/improvements/add-ons/upgrades/homebrew versions/etc.
 
-> COMMENTED DISSASSEMBLY PROJECT STATUS: ~60% complete
+> COMMENTED DISSASSEMBLY PROJECT STATUS: ~65% complete
 
 ## Sub-Projects
 
-There will also be sub-projects, undertaken to support the main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential (the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.) and some are quite optional (the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC, etc.).  In any case, better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
+There are also sub-projects, undertaken to support the main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential (the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.) and some are very much optional (the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC, etc.).  In any case, better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
 
 ### Emulator
 
