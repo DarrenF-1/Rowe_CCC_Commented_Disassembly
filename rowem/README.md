@@ -1,7 +1,7 @@
 rowem: A Rowe CCC Emulator
 ==========================
 
-_rowem_ is currently being developed in Windows 10.  However, only fairly basic console I/O are being used.  So porting it to a POSIX system probably wouldn't be too hard, for someone motivated to do so.  Probably easier to use just use a Windows VM or maybe WINE, although I haven't tried.
+_rowem_ is currently being developed in Windows 10.  However, only fairly basic console I/O are being used.  So porting it to a POSIX system probably wouldn't be too hard, for someone motivated to do so.  Might be easier to just use a Windows VM or maybe WINE, although I haven't tried either.
 
    <img src="rowem_screen.PNG" width="40%">
 
