@@ -37,7 +37,7 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
 
   - **R-89_CCC_assembly.jpg** - a CCC unit assembly.  The CCC PCB is enclosed in the plastic housing.  The connector labels, switch labels, and button labels, and LED readout labels are are visible.  This CCC is installed into a jukebox with a bill validator (P3 connector), but no video system (P5 connector) or wallboxes (P4 connector).
     
-  - **rowem** (folder) - files for the rowem CCC emulator.  See readme file in that directory for more information of those files.
+  - **rowem_emulator** (folder) - files for the rowem CCC emulator.  See readme file in that directory for more information.
 
   -  **documents** (folder) - files documenting the R-89 jukebox, associated hardware, accessories/options, other jukeboxes of the same era sharing identical or similar hardware, and any other documentation potentially helpful for understanding and commenting the disassembly of code.
     
