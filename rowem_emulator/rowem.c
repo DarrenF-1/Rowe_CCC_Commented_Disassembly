@@ -11,7 +11,6 @@ void LoadMEM(char*, char*, word, word);
 void UpdateDisplay();
 void SaveRAM();
 void SimulateMech();
-void HackROM();
 void HandleKeyboard();
 byte *MEM;
 FILE *fp, *fp2;
@@ -23,18 +22,29 @@ int page, xfer_pos, most_least, rec_vid;
 int o_mute,o_detent,o_magazine,o_transfer;
 int o_turntable,o_toggle,o_playcnt,o_coincnt;
 clock_t basetime, ref_time;
-int quitting;
+int quitting, filesize;
 
 int main() {
   emu_time=0; svc_mode=0; mag_pos=1; opto_mag=0; outer_cam=1; inner_cam=0; xfer_pos=0;
   system("cls");
-  printf("Rowem v0.1: A Rowe CCC Emulator by DarrenF\n\n");
+  printf("Rowem v0.2: A Rowe CCC Emulator by DarrenF\n\n");
 
   MEM = malloc(0x10000);
-  LoadMEM("rom.bin", MEM, 0xe000, 0x2000);
-  HackROM();
- 
-  printf("Simulate loss of battery power (reset all RAM)? ");
+  
+  fp=fopen("rom.bin", "rb");
+  if(!fp) {
+    printf("Error opening rom.bin");
+    exit(1);
+  }
+  fseek(fp, 0, SEEK_END);
+  filesize = ftell(fp);
+  fclose(fp);
+  if (filesize == 0x2000)
+    LoadMEM("rom.bin", MEM, 0xe000, 0x2000);
+  if (filesize == 0x4000)
+    LoadMEM("rom.bin", MEM, 0xc000, 0x4000);
+
+   printf("Simulate loss of battery power (reset all RAM)? ");
   if (getch()!='y') {
     printf("n\n\n");
     LoadMEM("ram.bin", MEM, 0x0000, 0x0800);
@@ -49,8 +59,8 @@ int main() {
   system("cls");
   printf("\033[?25lRowem: A Rowe CCC Emulator by DarrenF\n\n");
 
-  fp2=fopen("rowe_events.txt", "w");
-  fprintf(fp2, "Event log:\n");
+//  fp2=fopen("rowe_events.txt", "w");
+//  fprintf(fp2, "Event log:\n");
 
   reset6502();
   while (1) {
@@ -63,7 +73,7 @@ int main() {
     if (quitting == 1) break;		//
   }
 
-  fclose(fp2);
+//  fclose(fp2);
 
   printf("Saving RAM...\033[?25h");
     SaveRAM();
@@ -127,7 +137,7 @@ void write6502(uint16_t Addr, uint8_t Value) {
 }
 
 uint8_t read6502(uint16_t Addr) {
-  if(Addr < 0x0800 || Addr >0xc000) return MEM[Addr];		// simple job if reading RAM or ROM
+  if(Addr < 0x0800 || Addr >= 0xc000) return MEM[Addr];		// simple job if reading RAM or ROM
 
   if(Addr == 0x2000) {						// the rest is for memory-mapped IO (PIAs)
     byte val=0xf8;
@@ -371,7 +381,7 @@ void UpdateDisplay() {
   printf("%c", charcode[MEM[0x002a]&0x0f]);
   printf("\033[0m  ");
   if (MEM[0x0038]&0x02) printf("\033[3;41;30mTHA\033[0m  "); else printf("\033[0mTHA  ");
-  if (MEM[0x0038]&0x08) printf("\033[3;41;30mMAS\033[0m  "); else printf("\033[0mMAS  ");
+  if (MEM[0x0038]&0x01) printf("\033[3;41;30mMAS\033[0m  "); else printf("\033[0mMAS  ");
   printf("\033[0m    \033[3;42;30m");
   printf("%c",   charcode[MEM[0x005e]&0x0f]);
   printf("%c",   charcode[MEM[0x005f]&0x0f]);
@@ -437,8 +447,6 @@ void HandleKeyboard() {
     if ( kbhit() ) {
       key = getch();
       if (key == 'q') quitting = 1;	// quit emulator
-      if (key == ';') { MEM[0x0320] = 0x01; MEM[0x0321] = 0x00; MEM[0x00fa] = 0x00; } // [experimental function]
-      if (key == ':') { MEM[0x0320] = 0x00; } // [experimental function]
       if (key == '!') reset6502();	// emulator CPU reset
       if (key == '1') keypad = 1;
       if (key == '2') keypad = 2;
@@ -457,7 +465,7 @@ void HandleKeyboard() {
       if (key == 'm') keypad = 15;	// coin level 5 (dollar bill)
       if (key == 'p') keypad = 16;	// POPULAR
       if (key == 'r') keypad = 17;	// RESET (keypad button)
-      if (key == 'o') keypad = 18;	// 0+POPULAR (to enter prog mode)
+      if (key == 'o') keypad = 18;	// 0+POPULAR (used to enter prog mode)
       if (key == 'x') keypad = 19;	// CANCEL 
       if (key == 'a') keypad = 20;	// ADVANCE (CCC button)
       if (key == 'z') keypad = 21;	// RESET (CCC button)
@@ -481,68 +489,4 @@ void HandleKeyboard() {
       if (page < 0) page = 0;
       if (page > 7) page = 7;
     }
-}
-
-void HackROM() {
-			// 1st hack [tested and working]
-  MEM[0xe80e] = 0xa9;	// leave selection number in dispaly when done
-
-			// 2nd hack [in testing]
-  MEM[0xef6a] = 0x4c; // jmp $e002 - unmute amp using POPULAR key [hack experiment]
-  MEM[0xef6b] = 0x02; 
-  MEM[0xef6c] = 0xe0;
-
-  MEM[0xe002] = 0xc9; // cmp #$0a
-  MEM[0xe003] = 0x0a; 
-  MEM[0xe004] = 0xd0; // bne [ahead]
-  MEM[0xe005] = 0x03; 
-  MEM[0xe006] = 0x4c; // jmp $ef6e
-  MEM[0xe007] = 0x6e;
-  MEM[0xe008] = 0xef;
-  MEM[0xe009] = 0xc9; // cmp #0b
-  MEM[0xe00a] = 0x0b;
-  MEM[0xe00b] = 0xf0; // beq [ahead]
-  MEM[0xe00c] = 0x03; 
-  MEM[0xe00d] = 0x4c; // jmp $ef80
-  MEM[0xe00e] = 0x80;
-  MEM[0xe00f] = 0xef;
-  MEM[0xe010] = 0xa5; // lda $28 - get 1st digit of playing selection
-  MEM[0xe011] = 0x28;
-  MEM[0xe012] = 0xf0; // beq [ahead]
-  MEM[0xe013] = 0x03;
-  MEM[0xe014] = 0x4c; // jmp $ef80
-  MEM[0xe015] = 0x80;
-  MEM[0xe016] = 0xef;
-  MEM[0xe017] = 0xad; // lda $2002 - get PIA
-  MEM[0xe018] = 0x02;
-  MEM[0xe019] = 0x20;
-  MEM[0xe01a] = 0x09; // ora #$01 - set bit
-  MEM[0xe01b] = 0x01;
-  MEM[0xe01c] = 0x8d; // sta $2002 - store PIA (mute off)
-  MEM[0xe01d] = 0x02;
-  MEM[0xe01e] = 0x20;
-  MEM[0xe01f] = 0x20; // jsr $e3c7 - 0.5s delay
-  MEM[0xe020] = 0xc7;
-  MEM[0xe021] = 0xe3;
-  MEM[0xe022] = 0x20; // jsr $f21b - read keypad
-  MEM[0xe023] = 0x1b;
-  MEM[0xe024] = 0xf2;
-  MEM[0xe025] = 0xa5; // lda $36 - get keycode
-  MEM[0xe026] = 0x36;
-  MEM[0xe027] = 0xc9; // cmp #$0a - compare to reset keycode
-  MEM[0xe028] = 0x0a;
-  MEM[0xe029] = 0xd0; // bne [$f7] - branch back to read keypad again
-  MEM[0xe02a] = 0xf7;
-  MEM[0xe02b] = 0xad; // lda $2002 - get PIA
-  MEM[0xe02c] = 0x02;
-  MEM[0xe02d] = 0x20;
-  MEM[0xe02e] = 0x29; // and $fe - bitmask
-  MEM[0xe02f] = 0xfe;
-  MEM[0xe030] = 0x8d; // sta $2002 - store PIA (mute on)
-  MEM[0xe031] = 0x02;
-  MEM[0xe032] = 0x20;
-  MEM[0xe033] = 0x4c; // jmp $ef6e - jump back into normal code
-  MEM[0xe034] = 0x6e;
-  MEM[0xe035] = 0xef;
-
 }
