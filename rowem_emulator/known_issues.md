@@ -7,5 +7,5 @@ Known Isues and Limitations of rowem:
 - the "mirroring" of addresses due to incomplete address decoding is not emulated.  The as-written 6502 code appears very well-behaved, and does no rely on any mirroring (all known read/writes are to the nominal locations).
 - the speed/timing is currently very crude, and no automatic throttling is implemented.  A "sleep()" function slows operation can allow it to be made to run near real speeds by iterative adjustment (and re-compilation).  An automatic-throttling system based on the host computer time would be much better.
 - the LED display controller PCB in the top of the jukebox has not been inspected, and no schematics have been found.  The behavior emulated was developed from the assumed function and inspection of the code.
-- the function of a bill-validator (e.g. pulsing the $1 line 5 times for a $5 bill) is not currently emulated.  It may be approximated by very quickly pressing (or holding down) the "m" key (mapped to the $1 signal). 
+- the $5 function of a bill-validator (e.g. pulsing the $1 line 5 times for a $5 bill) is not currently emulated.  It may be approximated by very quickly pressing (or holding down) the "m" key (mapped to the $1 signal). 
 - the program user interface input (key reading) and output (display) assumes a standard-sized CLI window, and is currently OS-dependant (Windows).
