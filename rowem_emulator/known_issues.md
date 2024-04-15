@@ -1,4 +1,4 @@
-Known isues or Limitations of rowem:
+Known Isues and Limitations of rowem:
 ------------------------------------
 - only 8kB EPROM size supported (some CCCs had a 16kB EPROM installed)
 - LED display controllers (MM5450) not actually emulated.  rowem just pulls the data directly from RAM and interprets them as charaters (mostly digits) as they were originally defined.  Any changes to the character codes to change the way digits are displayed, of course, will not be properly emulated.
