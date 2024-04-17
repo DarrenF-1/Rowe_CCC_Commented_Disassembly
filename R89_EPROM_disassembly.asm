@@ -94,7 +94,7 @@ Le049               ldy $0c	; get baud-rate delay constant [redundant; Sfcad fet
 Le04d               dex		;  } small delay loopback (X=0 when done) 
                     bne Le04d	; /
                     jsr Sfcad	; transmit byte (from buffer at $b1) via serial (at selected baud rate)
-                    pla		; \_ retrieve byte offset/counter from stack
+                    pla		; \ retrieve byte offset/counter from stack
                     tay		; / 
                     lda $07	; \ did we just finish "page 1" (the checksum byte)?
                     cmp #$01	; /
@@ -109,10 +109,10 @@ Le04d               dex		;  } small delay loopback (X=0 when done)
                     sta $4000	; /  leave output line high (quiescent)
                     rts		; 
 				;
-					; bottom part of inner loop
+				; bottom part of inner loop
 				; 
 Le069               dey		; decrement byte offset/counter
-                    cpy #$ff	; \ are we done with this page? (did Y wrap around?) 
+                    cpy #$ff	; \ done with this page? (did Y wrap around?) 
                     bne Le03e	; / if not, loopback for next byte
 				;
 				; bottom part of outer loop
@@ -242,14 +242,14 @@ Le100               dey		;  /
                     bne Le100	; /  delay
 				;
                     lda #$7f	; \ %0111 1111 
-                    sta $4000	; / write to PIA2-A (high to video system?)
+                    sta $4000	; / write to PIA2-A (high signal to video system)
 				;
                     ldy #$23	; \  35 loops
 Le10a               dey		;  } 
                     bne Le10a	; /  delay
 				;
-                    sty $08	; Y now has 0; store at $08 to indicate sucess
-Le10f               lda #$77	; \ %0111 0111 - data sent to video system
+                    sty $08	; (Y now has 0) store at $08 to indicate sucess
+Le10f               lda #$77	; \ %0111 0111 - low signal to video system
                     sta $4000	; / write to PIA2-A
                     lda $08	; get return status code to A
                     rts		; 
@@ -260,13 +260,13 @@ Le10f               lda #$77	; \ %0111 0111 - data sent to video system
 				;  (called from 1 place in code - near $ea12)
 				;  uses $08 as temp var for error/exit code
 				;  expects bytes to send in buffer at $79-$7f
-				;  1st byte ($79) is total size of message
+				;  1st byte ($79) encodes total size of message (low 3 bits)
 				; 
 Se117               lda $4000	; \ read PIA2-A
                     and #$20	; / %0010 0000 isolate bit 5: data from video system
                     bne Le129	; branch down if high (video system ready?)
 				;
-				; video system not ready, bail(?)
+				; video system not ready?, bail(?)
 				; 
 Le11e               lda #$77	; \ %0111 0111: bit 3, data to video system (low)
                     sta $4000	; / write to PIA2-A
@@ -276,7 +276,7 @@ Le11e               lda #$77	; \ %0111 0111: bit 3, data to video system (low)
 				;
 				; handshake with video system?
 				;
-Le129               lda #$7f	; \ %0111 1111: video system out bit = high
+Le129               lda #$7f	; \ %0111 1111: video system out bit (high)
                     sta $4000	; / write to PIA2-A
                     lda #$20	; %0010 0000 to mask bit 5
                     nop		; \ 4us pause
@@ -284,7 +284,7 @@ Le129               lda #$7f	; \ %0111 1111: video system out bit = high
                     and $4000	; read bit 5 of PIA2-A - data from video system
                     beq Le11e	; loopback if low (to bail)
 				;
-				; (alternate entry point - called from 1 place)
+				; (alternate entry point)
 				;
 Se137               lda #$80	; \ store default exit code
                     sta $08	; /
@@ -341,7 +341,7 @@ Le16a               dec $0a	; decrement counter 	(5*19 cycles)
                     cpx $07	; are we up to # of bytes in message?
                     bne Le152	; if not, loopback for another byte
 				;
-				; check for ? from video system
+				; check for (?) from video system
 				;
                     lda #$77	; \ %0111 0111 clear bit 3
                     sta $4000	; / write to PIA2-A: send 0 to video system
@@ -830,7 +830,7 @@ Se433               ldy #$03	; init loop counter to Y=3 (alt. entry)
 				; 
 Se435               jsr Sff35	; clear all LED display data (Y not used)
                     ldx $e422,y	;   get table value (from above)
-                    lda #$0b	;   A=(%0000 1011) (for case of X=$38) [turn on both indicator lamps?]
+                    lda #$0b	;   %0000 1011 (for case of X=$38) turn on both indicator lamps
                     cpx #$38	;   compare X to $38 [only 1 in table, at Y=4]
                     beq Le443	;   skip next opcode if X=$38 (leaving A=$0b)
                     lda #$08	;     A=8 (if X is NOT $38)
@@ -867,58 +867,58 @@ Le457               jsr Se45f	; process a digit of data to LED displays
 Se45f               tya		; \
                     pha		; / put Y on stack
                     lda $4000	; \  read PIA2-A
-                    and #$20	;  } %0010 0000 isolate bit 5: data from video system [why??]
-                    sta $0d	; /  store to $0d variable(?): will be $20 or $00 [ref. $e517?]
-                    lda #$0e	; \ %0111 0000 (LED controller stop bits?)
+                    and #$20	;  } %0010 0000 isolate bit 5: data from video system [why?]
+                    sta $0d	; /  store $0d variable(?): will be $20 or $00 [ref. $e517]
+                    lda #$0e	; \ %0000 1110 (bitstream used at end?)
                     sta $84	; / store to $84 
-                    lda #$31	; %0011 0001 clock data 0 to LEDs?
-                    sta $4002	; write to PIA2-B
-                    ldx $98	; get counter variable $98 to X
-                    bne Le48d	; branch down if it's non-zero (is 0 on first time thru)
+                    lda #$31	; \ %0011 0001: put both LED clocks low (hardware inverted)
+                    sta $4002	; / write to PIA2-B
+                    ldx $98	; get location counter variable to X
+                    bne Le48d	; branch down if it's non-zero (0 on first time thru)
 				;
-				; first time through set up
+				; first time through; set up
 				; 
-                    stx $99	;   init $99 var to 0 (X must be 0 to get here)
-                    lda #$19	;   (25) init the digit counter/offset?
-                    sta $98	;   store initialized counter back to $98
-                    ldx #$25	;   set loop counter to 37 (bits to clock to LED controller)
-Le47d               lda #$01	;   %0000 0001 H clock data 0 to LEDs (CCC and top group 0?)
-                    sta $4002	;     write to PIA2-B
-                    lda #$31	;     %0011 0001 L clock data 0 to LEDs (CCC and top group 0?)
-                    dex		;     decrement X counter
-                    sta $4002	;     write to PIA2-B
-                    bne Le47d	;   loopback until X=0
-                    jmp Le52c	;   jump to very near end of subroutine
+                    stx $99	; init $99 var to 0 (X must be 0 to get here)
+                    lda #$19	; \ init the digit counter/offset (25 bytes to use)
+                    sta $98	; /
+                    ldx #$25	; set loop counter to 37 (bits to clock to LED controller)
+Le47d               lda #$01	;   \ %0000 0001: clock H, data 0 to LEDs (CCC and top group 0?)
+                    sta $4002	;   / write to PIA2-B
+                    lda #$31	;   \  %0011 0001: clock L, data 0 to LEDs (CCC and top group 0?)
+                    dex		;    } (decrement bit counter)
+                    sta $4002	;   /  write to PIA2-B
+                    bne Le47d	; loopback until X=0
+                    jmp Le52c	; jump to very near end of subroutine
 				;
 				; after 1st time thru...
 				;
-Le48d               lda #$20	; \ 
-                    sta $06	; / default charset offset of $20 for CCC LEDs
-                    lda #$e0	; 
-                    cpx #$18	; compare X (counter var $98) to 24 [1st time here]
-                    bne Le49a	; skip jmp if not 24
-                    jmp Le529	;   if X=$18, jump to send $e0 (%1110 0000) [0s+start bit+two n/c lines]
+Le48d               lda #$20	; \ default charset offset of $20 for CCC LEDs 
+                    sta $06	; /
+                    lda #$e0	; %1110 0000 bitstream that might be needed
+                    cpx #$18	; compare (counter var $98) to 24 (1st time here)
+                    bne Le49a	; skip next opcode if not 1st time here
+                    jmp Le529	;   if X=$18, jump to send %1110 0000 [0s + start bit + 2 n/c lines]
 				;
 				; select appropriate LED controller
 				;
-Le49a               ldx $99	; fetch variable $99 (digit position?)
-                    cpx #$05	; are we at digit position 5?
-                    bcc Le4b5	; branch down if pos < 5 (CCC LEDs; controller already selected)
+Le49a               ldx $99	; fetch (digit position)
+                    cpx #$05	; compare (digit position) to 5
+                    bcc Le4b5	; branch down if posisition < 5 (CCC LEDs; controller already selected)
 				;  but for digits 5 and up (all top LEDs)
                     lda #$10	;   \
                     sta $06	;   / change charset offset to $10 for top LEDs
-                    lda #$ff	;   %1111 1111 LED sel [11] select LED controller 3
+                    lda #$ff	;   %1111 1111 LED sel [00] select LED controller 0
                     cpx #$0b	;   compare digit position to 12
                     bcc Le4b2	;   branch down if < 12
-                    lda #$fb	;     %1111 1011 LED sel [10] select LED controller 2
+                    lda #$fb	;     %1111 1011 LED sel [01] select LED controller 1
                     cpx #$11	;     compare digit position to 17
                     bcc Le4b2	;     branch down if < 17
-                    lda #$f7	;       %1111 0111 LED sel [01] select LED controller 1
+                    lda #$f7	;       %1111 0111 LED sel [10] select LED controller 2
 Le4b2               sta $4002	;   write to PIA2-B - sets select lines based on $99
 				;
 				; loop up and store the RAM location for this digit
 				;
-Le4b5               ldy $e288,x	; Y = 0-page RAM address from ROM table for current digit position (0-22)
+Le4b5               ldy $e288,x	; get 0-page RAM address from ROM table for current digit position (0-22)
 				;
 				; Le288 (for ref.)      /CCC  LEDs\ :: :: / TOP 
 				;	                61 5f 5e 60 84(40)96 95 
@@ -930,71 +930,73 @@ Le4b5               ldy $e288,x	; Y = 0-page RAM address from ROM table for curr
 				;  08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15 16
 				;  -------] [---------------] [---------------]
 				;
-                    sty $0a	; store (RAM address for an LED digit's value) to $0a 
+                    sty $0a	; store (RAM address for LED digit's value) to $0a 
 				;
-				; handle special start bytes; $40 (%0010 0000)
-				;  [start bit & two 0s for n/c segments?]
+				; handle special start bytes; $40 (%0100 0000)
+				;   (6) 0s + start bit (only 7 bits used on top LEDs) 
 				;
                     tya		; Y->A (also store RAM address in A)
                     cpx #$05	; compare X to 5 ("digit" position)
-                    beq Le527	; if == branch way down (straight to output of $40 values, start bits?)
+                    beq Le527	; if == branch way down (straight to output start bit)
                     cpx #$0b	; compare X to 12 (again)
-                    beq Le527	; if == branch way down (straight to output of $40 values, start bits?)
+                    beq Le527	; if == branch way down (straight to output start bit)
                     cpx #$11	; compare X to 17 (again) 
-                    beq Le527	; if == branch way down (straight to output of $40 values, start bits?)
+                    beq Le527	; if == branch way down (straight to output start bit)
 				;
-                    lda $0000,y	; otherwise, get a digit charcode (Y holds RAM address of current digit)
+                    lda $0000,y	; otherwise, get a digit charcode (Y is RAM address of current digit)
                     eor #$ff	; invert every bit of A (why? only used inverted for indicator lamps)
 				;
 				; special treatment for last byte
 				;   ("THANK YOU" and "MAKE SELECTION" lights)
-				;   (keypress related code NOT understood)
+				;   (keypress related code NOT understood; possibly provision for a
+				;    lighted keypad that activates when a key is pressed)
 				;
                     cpx #$16	; \ (22) last byte of display data
-                    bne Le4de	; / for all bytes before the last one, skip this code
-                    ora #$04	;   set bit 2 (%0000 0100) of (inverted) A
-                    ldx $9c	;   get $9c variable to X (current keypress code?)
-                    bmi Le527	;   branch based on bit 7 of X? (no kepress?); go send the byte [not charcode]
-                    and #$fb	;   clear bit 2 (%1111 1011) of (inverted) A
-                    ldx #$ff	;   \
-                    stx $9c	;   / store $ff to $9c variable (keypress code?)
-                    bne Le527	;   unconditional branch; increment counter and send byte [not a charcode]
+                    bne Le4de	; / for all other bytes, skip this block of code
+                    ora #$04	;   %0000 0100 set bit 2 of (inverted) A
+                    ldx $9c	;   get $9c variable to X (current keypress code)
+                    bmi Le527	;   branch based on bit 7 of X (no kepress); go send the byte [not charcode]
+                    and #$fb	;     clear bit 2 (%1111 1011) of (inverted) A
+                    ldx #$ff	;     \
+                    stx $9c	;     / store $ff as (keypress code)
+                    bne Le527	;     unconditional branch; increment counter and send byte [not a charcode]
 				;
 Le4de               eor #$ff	; un-invert all bits of A (back to original)
                     sta $08	; store data byte to temp var $08
                     lda $06	; get charset offset ($20 or $10)
-                    sec		; set carry flag for subtraction
-                    sbc #$10	; A=A-16 (reduce $20 to $10, or $10 to $00)
+                    sec		; \ 
+                    sbc #$10	; / (reduce $20 to $10, or $10 to $00)
                     ora $08	; OR with temp var $08 (potentially sets bit 4 to select 2nd charset)
                     tay		; A->Y copy updated output charcode to Y
                     lda $e268,y	; get LED-code from ROM table for charcode (Y should be $00-$1f)
-                    ldy $0a	; get variable $0a (RAM address for this digit's charcode) to Y
-                    cpy #$96	; is variable RAM address $96? (one of the top LED digits)
+                    ldy $0a	; get (RAM address for this digit's charcode) to Y
+                    cpy #$96	; RAM address $96? (one of the top LED digits)
                     bne Le503	; if not skip to next check...
 				;
 				; special case: $96, 1s digit of "MOST POPULAR SELECTION" on top of juke
+				; (this LED is wired differently for unknown reason - design error?)
 				;
-                    pha		;   push LED code
-                    and #$2f	;   %0010 1111 isolate some bits [LED segments bafg and d?]
-                    sta $08	;   store to $08 temp var
-                    pla		;   pull LED code back to A
-                    and #$50	;   %0101 0000 isolate some bits [LED segments c and e?]
-                    asl a	;   shift A left
-                    asl a	;   ...twice (bit 6 goes into carry bit)
-                    bcc Le501	;   skip next opcode if bit 6 was high
-                    ora #$10	;     %0001 0000 set bit 5 of A [effectively swaps bits 4 & 6, segments c & e]
-Le501               ora $08	;   stored modified byte at $08 temp var [is this LED wired differently??]
+                    pha		; push LED code
+                    and #$2f	; %0010 1111 isolate some bits [LED segments bafg and d]
+                    sta $08	; store to $08 temp var
+                    pla		; pull LED code back to A
+                    and #$50	; %0101 0000 isolate some bits [LED segments c and e]
+                    asl a	; \ shift A left
+                    asl a	; / ...twice (bit 6 goes into carry bit)
+                    bcc Le501	; skip next opcode if bit 6 was high
+                    ora #$10	;   %0001 0000 set bit 5 of A [effectively swaps bits 4 & 6, segments c & e]
+Le501               ora $08	; stored modified byte at $08 temp var 
 				;
 Le503               cpy #$5f	; do we have the RAM address to 2nd digit of the CCC LEDs?
-                    beq Le521	; if so, branch down to special case
+                    beq Le521	; if so, branch down to special case for decimal point
 				;
-                    ldx $35	; get service/normal mode flag
+                    ldx $35	; check service/normal mode flag
                     bne Le527	; in service mode, branch down
 				;
 				; normal ("on") mode
 				;
-                    cpy #$61	; compare Y to $61 (rightmost CCC LED digit)
-                    bne Le517	; if not equal branch down
+                    cpy #$61	; is this (rightmost CCC LED digit)?
+                    bne Le517	; if not, branch down
                     ldy $78	;   get $78 var [flag for message to send to video system?]
                     beq Le527	;   branch ahead if 0
 Le513               ora #$08	;     %0000 1000 set bit 3 of A to turn a blank in to "-" 
@@ -1007,11 +1009,11 @@ Le517               cpy #$60	; compare Y to $60 (3rd CCC LED digit)
 				;
 				; special case: $5f - 2nd digit of CCC LEDs
 				;
-Le521               ldy $86	; check $86 variable (CCC LED decimal point flag?)
+Le521               ldy $86	; check (CCC LED decimal point flag)
                     beq Le527	; if variable is 0, skip over next opcode
-                    ora #$80	;   %1000 0000 set high bit of (light the decimal point segment?)
+                    ora #$80	;   %1000 0000 set high bit of (light the decimal point)
 				;
-				; (common code)
+				; (common path)
 				;
 Le527               inc $99	; increment digit position counter
 Le529               jsr Se531	; transmit out a byte (A) to LED controller
@@ -1027,19 +1029,19 @@ Le52c               pla		; \
 				;   $06: selects 7 or 8 bit outut and charset 
 				;     ($10 for 7 bits and top LED charset
 				;      $20 for 8 bits and bottom LED charset)
-				;   (only ever called from above routine)
+				;   (only called from above routine)
 				;
 Se531               ldy $06	; get charset offset ($10 or $20) to Y
                     ldx $4002	; get initial PIA2-B status to X
                     cpy #$11	; compare charset offset to $11 (17) to set/clear carry flag
                     ldy #$07	; set bit counter to 7 bits (default for top LEDs)
                     bcc Le53e	; skip next opcode if Y < $11 ($10, top charset)
-                    ldy #$08	;   Y=8 (8 bits) [7 for $06=$10, 8 for $06=$20]
+                    ldy #$08	;   bit counter to 8 bits [7 for $06=$10, 8 for $06=$20]
 Le53e               sta $08	; store A at $08 (byte to output)
 Le540               ror $08	;   rotate $08 right (puts bit 0 into carry bit)
                     lda $4002	;   get PIA-2-B status to A
-                    and #$fe	;   (%1111 1110) clear bit 0 (data to LED displays)
-                    ora #$30	;   (%0011 0000) set bits 4 & 5 (both LED clocks)
+                    and #$fe	;   %1111 1110 clear bit 0 (data to LED displays)
+                    ora #$30	;   %0011 0000 set bits 4 & 5 (both LED clocks)
                     stx $4002	;   store *X* to PIA2-B (original state)
                     bcs Le550	;   skip next if carry set (from ROR at $e540, if bit 0 was high)
                     ora #$01	;     set bit 0 (data to LED displays)
@@ -1047,10 +1049,10 @@ Le550               sta $4002	;   write A to PIA2-B (data bit for an LED control
                     lda $06	;   get charset offset (%0001 0000 or %0010 0000)
                     eor #$ff	;   invert all bits
                     and $4002	;   clear a bit from PIA-2 based on $06 (clock bit for appropriate display)
-                    sta $4002	;   write A to PIA2-B (strobe to clock the data bit to the controller)
+                    sta $4002	;   write A to PIA2-B (strobe to clock a data bit to the controller)
                     ora $06	;   set a bit back in A based on $06 (clear clock bit for display)
                     tax		;   A->X (update X, was initial PIA2-B status)
-                    dey		;   decrement Y, bit counter
+                    dey		;   decrement bit counter
                     bne Le540	; loopback 7 or 8 times to rotate $08 around and clock out each bit
                     txa		; X -> A
                     ora #$01	; set bit 0 (data to LED displays - inverted in h/w)
@@ -1205,20 +1207,20 @@ Le63d               lda $02	; \  check to see if we came from "factory test mode
                     jmp Le3ae	; /  return to factory test mode  
 Le644               bcc Le64a	; skip over if carry clear (RAM was OK)
                     lda #$02	;   error code 2 (defective RAM)
-                    bne Le65e	;   reset the factory settings
+                    bne Le65e	;   (always branch) reset the factory settings
 				;
 				; perform ROM test
 				;
 Le64a               jsr Se1a4	; verify ROM checksum
                     beq Le65c	; if ROM is OK (z flag set) branch to next check
 				;
-				; deal with errors detected
+				; deal with ROM error
 				;
                     sta $24	; store A (ROM checksum) at $24 (to convert to decimal digits)
                     lda #$0c	; \ set offset
                     sta $26	; / so output will be on "SELECTION BEING MADE" LEDs
                     jsr See45	; parse binary number into decimal digits
-                    lda #$03	; flag error code 3 (for "defective ROM")
+                    lda #$03	; set error code 3 (for "defective ROM")
                     bne Le65e	; (unconditional) branch past next instruction
 				;
 Le65c               lda #$01	; error code 1 (checksum fault) [only issue in $0300-$03__]
@@ -1228,7 +1230,7 @@ Le65e               sta $6b	; store error code [error 0 if jmped here; factory s
                     lda #$16	; \ 
                     sta $fb	; / init $fb variable to 22
                     lda #$2b	; \
-                    sta $fc	;  } init $fc & $fe
+                    sta $fc	;  } default to (42) 3XX videos & 4XX videos available
                     sta $fe	; /
                     lda #$03	; \
                     sta $fd	;  } init $fd & $ff
@@ -1236,9 +1238,9 @@ Le65e               sta $6b	; store error code [error 0 if jmped here; factory s
                     jsr Sf9df	; reset MEMOREC tables?
                     lda $6b	; fetch error code
                     bne Le680	; if (non-zero) error present, skip RAM checksum update
-                    jsr Sef18	;   update the RAM checksum
-Le680               jsr Sfb65	; display error code on CCC LEDs
-                    jsr Se3c7	; pause for 2 seconds
+                    jsr Sef18	;   update the RAM checksum (for error 0)
+Le680               jsr Sfb65	; \ display error code on CCC LEDs
+                    jsr Se3c7	; / pause for 2 seconds
                     lda $2000	; \  get PIA1-A status
                     and #$04	;  } %0000 0100 isolate bit 2, SERVICE/ON mode
                     beq Le699	; /  if 0 (bit 2 low, "ON" mode, NOT svc mode) branch ahead
@@ -1264,8 +1266,8 @@ Le699               jsr Sff67	; zero & init variables
 				;
                     lda #$04	; \ set error code #4 for battery low
                     sta $6b	; /
-                    jsr Sfb65	; display Err code on CCC LEDs
-                    jsr Se3c7	; 2s pause
+                    jsr Sfb65	; \ display Err code on CCC LEDs
+                    jsr Se3c7	; / 2s pause
 				;
 Le6af               lda $031c	; get setting for "retain/forget credits at power-up"
                     bne Le6c6	; if not 0 (i.e. retain credits) branch ahead...
@@ -1274,9 +1276,9 @@ Le6af               lda $031c	; get setting for "retain/forget credits at power-
 				;
                     ldx $cd	; (check for warm-reboot from service mode?)
                     bne Le6be	; if non-zero skip down
-                    ldx $cc	;   get $cc variable
+                    ldx $cc	;   get (flag for free credit from svc code 700)
                     beq Le6c3	;   if is zero, branch to forget credits anyway
-                    sta $cc	; store setting (should be $ff to get here?) at $cc variable
+                    sta $cc	; store setting (should be $ff to get here) at $cc variable
 Le6be               sta $cd	; and at $cd variable
                     jmp Le6c6	; skip next opcode (don't clear credits)
 Le6c3               jsr Se749	; clear credits (and some other stuff)
@@ -1287,9 +1289,9 @@ Le6c6               jsr Sf73c	; [subroutine; check selection list?]
                     jsr Se3d4	; 100ms delay
                     jsr Sff35	; clear LED display data
                     jsr Se59c	; add any credits and update the credit display
-                    lda #$12	; \  (18) 
-                    sta $eb	;  } init var $eb
-                    sta $e0	; /  init var $e0
+                    lda #$12	; \  (video system command code to initialize?)
+                    sta $eb	;  } init var $eb (command to video system)
+                    sta $e0	; /  init var $e0 
                     lda #$00	; \
                     sta $39	;  | init var $39 (video mode off?)
                     sta $28	;  | init var $28 \
@@ -1338,13 +1340,13 @@ Le712               jsr Sf646	; monitor service switch, mech & coins
 				;
 				; end of main loop in service mode
 				;
-Le728               lda $ed	; get $ed var (?) 
+Le728               lda $ed	; get $ed var (video-is-playing?)
                     bne Le701	; if $ed var not 0, loopback to top of main loop
-                    bit $68	; set flags per PIA1-A status
-                    bpl Le740	; branch based on bit 7 PIA1-A (CANCEL button)
+                    bit $68	; \ set flags per PIA1-A status
+                    bpl Le740	; / branch based on bit 7 PIA1-A (CANCEL button)
                     lda $65	;   get $65 counter var (debounce?)
                     bne Le701	;     if $65 counter var not 0, back to top of main loop
-                    sta $cf	;     init $cf to 0 (mute status?)
+                    sta $cf	;     set $cf to 0 (mute status?)
                     lda #$af	;     \ 
                     sta $65	;     / init $65 counter var to $af (debounce?)
                     lda #$4a	;     \ send command code #$4a to video system (to cancel video)
@@ -1353,10 +1355,10 @@ Le728               lda $ed	; get $ed var (?)
 				;
 				; CANCEL (not?) pressed
 				;
-Le740               lda $65	;   get $65 var
-                    beq Le701	;   if $65 var = 0 loopback to top (w/o decrementing it)
-                    dec $65	;     decrement $65 counter (debounce?)
-                    jmp Le701	;     jump back to top of loop
+Le740               lda $65	; get $65 var
+                    beq Le701	; if $65 var = 0 loopback to top (w/o decrementing it)
+                    dec $65	;   decrement $65 counter (debounce?)
+                    jmp Le701	;   jump back to top of loop
 				;
 				;***************
 				; CLEAR CREDITS
@@ -1372,7 +1374,7 @@ Le74d               sta $02f4,x	; loop clears $02f4-$02fd
 Le755               sta $0100,x	; loop clears $0100-$0131 (?)
                     dex		;   next byte
                     bpl Le755	; loopback until done
-                    rts		; done here!
+                    rts		; done
                     		;
 				;************************
 				; main-loop subroutine 1
@@ -1386,8 +1388,8 @@ Se75c               dec $3d	; decrement $3d timer
 				;
                     dec $9a	; decrement $9a var (THANK YOU indicator lamp timer)
                     bpl Le77e	; branch if not a rollunder
-                    lda #$00	;   \ init $38 to 0
-                    sta $38	;   / turn off THANK YOU (and MAKE SELECTION?) lamps
+                    lda #$00	;   \ turn off THANK YOU (and MAKE SELECTION) lamps
+                    sta $38	;   / 
                     lda $ed	;   get $ed var(?)
                     beq Le77e	;   branch down if $ed var = 0
                     lda $2002	;     \  get PIA1-B status
@@ -1487,10 +1489,10 @@ Le808               sta $24	; store table index to $24 var
 				;
 				; only do this block every-other time, when $89 is low
 				;
-Le80e               lda $9b	; get (record-is-playing boolean?)
+Le80e               lda $9b	; get (record-is-playing) boolean
                     beq Le814	; skip next opcode if 0 (not playing music)
                     lda $ef	;   get $ef var (selection #)
-Le814               sta $24	; place value to be converted to decimal digits (selection # or 0)
+Le814               sta $24	; to be converted to decimal digits (selection # or 0 if not playing)
                     lda #$74	; direct output to $8f-$92, top "SELECTION PLAYING" LEDs
 				;
 				; (paths merge)
@@ -1512,9 +1514,9 @@ Le832               inc $1c,x	; increment 1st digit (of selected LEDs)
 				;
 				; regular "on" mode and service mode
 				;
-Le834               lda $38	; get $38 var (THANK YOU & MAKE SELECTION lights?)
-                    ora #$09	; (%0000 1001) isolate bits 0 and 3
-                    sta $38	; store $38 var back (clearing bit 1, the THANK YOU bit)
+Le834               lda $38	; get (THANK YOU & MAKE SELECTION lamp control byte)
+                    ora #$09	; (%0000 1001) isolate bits 0 and 3 (bit 3 not understood)
+                    sta $38	; store $38 var back (clearing bit 1, the "THANK YOU" control bit)
                     lda #$ff	; \
                     sta $41	;  } set $41 & $6d vars to $ff	
                     sta $6d	; /
@@ -1530,14 +1532,14 @@ Le834               lda $38	; get $38 var (THANK YOU & MAKE SELECTION lights?)
                     sta $41	;   store credit total to $41 var
                     bne Le858	;   if non-zero branch ahead
                     lda $38	;     \  get (THANK YOU & MAKE SELECTION lights) control byte
-                    and #$fe	;      } %1111 1110 clear bit 0: THANK YOU control bit?
+                    and #$fe	;      } %1111 1110 clear bit 0: THANK YOU control bit
                     sta $38	;     /  store updated value
 Le858               lda $02f6	; get credits just recieved for money in (video mode)
                     clc		; \
                     adc $02f7	; / add current credit count to A
                     bcs Le881	; if this rolls over, branch to near end
-                    sta $6d	;   store to $6d var
-                    bne Le881	;   if non-zero branch to near end
+                    sta $6d	; store to $6d var
+                    bne Le881	; if non-zero branch to near end
                     lda $41	;   get $41 var (# of credits?)
                     beq Le87b	;   if out of credits, branch down
                     cmp $02fb	;     compare $41 var to $02fb (selection-has-been-made boolean?)
@@ -1545,11 +1547,11 @@ Le858               lda $02f6	; get credits just recieved for money in (video mo
                     bne Le875	;     branch if not equal
                     lda $02fc	;       get $02fc var(?) MSB?
                     bne Le87b	;       branch if non-zero
-Le875               lda #$01	;     A=1
-                    sta $6d	;     init $6d var to 1 (video credit related?)
+Le875               lda #$01	;     \ A=1
+                    sta $6d	;     / init $6d var to 1 (video credit related?)
                     bne Le881	;     unconditional branch down
 Le87b               lda $38	;   get (THANK YOU & MAKE SELECTION lights) control byte
-                    and #$f7	;   %1111 0111 clear bit 3: MAKE SELECTION control bit?
+                    and #$f7	;   %1111 0111 clear bit 3: (not understood)
                     sta $38	;   store updated value
 				;
 Le881               jsr Se45f	; (update LED displays - doesn't use parent loop??)
@@ -1558,15 +1560,15 @@ Le881               jsr Se45f	; (update LED displays - doesn't use parent loop??
                     		;*************************
 				; main loop subroutine 2
 				;*************************
-				;  (only called from main loop)
+				;  only called from main loop
 				;  (lots of video related stuff)
 				;  [needs much attention]
 				;
-Se885               lda $eb	; get $eb var (video system command?)
-                    beq Le88c	; skip next opcode if $eb=0
+Se885               lda $eb	; get (video system command code)
+                    beq Le88c	; skip next opcode if no command waiting
                     jmp Le9d6	;   jump down a ways
 				;
-				; no command waiting for video system?
+				; no command to send to video system
 				;
 Le88c               lda $ed	; get $ed var (video is playing flag?)
                     bne Le8db	; 
@@ -1581,7 +1583,7 @@ Le898               ldx $3c	; (selection related flag?)
                     lda $f1	; (video system timer?) 
                     cmp #$ff	; 
                     beq Le8db	; if $f1 var = $ff, branch
-                    cmp $032b	; check fill time during video search setting qqq
+                    cmp $032b	; check fill time during video search setting
                     bcc Le8db	; if $f1 var < $032b setting, branch
                     inc $e9	; \ increment $e9 var and fetch it to A
                     lda $e9	; /
@@ -1596,7 +1598,7 @@ Le8b3               sta $24	; /  (where is $25 set? $26?)
                     bcc Le8c2	; branch if < 8
                     inc $e9	;   \ increment $e9 twice
                     inc $e9	;   /
-Le8c2               lda #$1a	; \ set $eb var to 26 (video command code?)
+Le8c2               lda #$1a	; \ set $eb var to $1a (video command code?)
                     sta $eb	; / 
                     bne Le8fb	; always branch
 				;
@@ -1606,7 +1608,7 @@ Le8c8               lda $032c	; get record/video mix/ratio setting
                     cmp $032c	;   compare to record/video mix setting
                     bcs Le8e7	;   
 				;
-Le8d4               lda $f1	; 
+Le8d4               lda $f1	; check timer(?)
                     cmp $032b	; compare to setting: "fill-time during video search"
                     bcs Le8e7	; branch if $f1 >= setting value
 				;
@@ -1628,20 +1630,20 @@ Le8ef               lda $f9	;
                     bne Le8f7	;
                     lda $35	; (service mode boolean?)
                     bne Le8e7	; 
-Le8f7               lda #$2a	; \ command code to send to video system?
+Le8f7               lda #$2a	; \ command code to send to video system
 Le8f9               sta $eb	; /
 				;
 Le8fb               lda $eb	; get command to video system
                     ora $f6	; 
                     bne Le910	;
-                    ldx $f7	; video playlist selection pointer?
-                    cpx $f8	; video playlist selection pointer?
-                    beq Le910	; skip down if 0
-                    lda $0300,x	;   get value from video playlist?
-                    sta $7a	;   store as 2nd byte of message to video system?
-                    lda #$33	;   \ command code to video system
+                    ldx $f7	; video playlist selection index (next to play?)
+                    cpx $f8	; video playlist selection index (next entry?)
+                    beq Le910	; skip down if $f7==$f8
+                    lda $0300,x	;   get selection from video playlist
+                    sta $7a	;   store as 2nd byte of message to video system
+                    lda #$33	;   \ command code to video system ("play video...")
                     sta $eb	;   /
-Le910               lda #$00	;   \ set $78 var to #$00 [flag relating to video system message]
+Le910               lda #$00	;   \ set $78 var to #$00 [flag for a video system message]
                     sta $78	;   /
                     jsr Se081	; check for & receive message from video system
                     beq Le91f	; branch if return code is 0 (success)
@@ -1659,7 +1661,7 @@ Le91f               lda $4d	; \  get command byte from video system
                     jsr Se1b9	; /  log received message content to wallbox queue table
                     lda $4d	; get command code (again)
 				;
-				; check for $02 command (from video system?)
+				; check for $02 command (from video system)
 				;
                     cmp #$02	; compare to $02
                     bne Le938	; if not, skip ahead to next check
@@ -1671,7 +1673,8 @@ Le91f               lda $4d	; \  get command byte from video system
                     stx $f9	;   /
                     rts		;   done
 				;
-				; check for $16 command (from video system?)
+				; check for $16 command (from video system)	
+				;   sends data for $fb-$ff variables
 				;
 Le938               cmp #$16	; compare to $16
                     bne Le959	; if not, skip ahead to next check
@@ -1679,20 +1682,20 @@ Le938               cmp #$16	; compare to $16
 Le93e               lda $4d,x	; \
                     sta $fb,x	;  } copy from video system input buffer to $fb-$ff
                     dex		; /
-                    bpl Le93e	; loopback til X rolls under
+                    bpl Le93e	; loopback til X rolls under (command code goes in $fb)
                     stx $39	; set video mode boolean (to $ff)
                     inx		; \  (X=0 now)
                     stx $ec	;  } set $ec var to 0
                     stx $f6	; /  set $f6 var to 0
                     lda $fc	; get $fc (just rec'd from video system)
                     beq Le952	; skip next opcode if $fc=0
-                    dec $fc	;   decrement $fc
+                    dec $fc	;   decrement $fc (from # of videos to maximum selection number?)
 Le952               lda $fe	; get $fe var
                     beq Le958	; skip next opcode if $fe=0
-                    dec $fe	;   decrement $fe
+                    dec $fe	;   decrement $fe (from # of videos to maximum selection number?)
 Le958               rts		; done
 				;
-				; check for $2a command (from video system?)
+				; check for $2a command (from video system)
 				;
 Le959               cmp #$2a	; compare to $2a
                     bne Le970	; if not, skip ahead to next check
@@ -1702,24 +1705,25 @@ Le959               cmp #$2a	; compare to $2a
 Le963               lda $ea	; \ get $ea var
                     beq Le969	; / skip next opcode if 0
                     sta $e8	;   copy $ea var to $e8 var (mech related?)
-Le969               lda #$00	; \ 
+Le969               lda #$00	; \
                     sta $f6	;  } set $f6 & $f1 vars to 0
                     sta $f1	; /
                     rts		; done
 				;
-				; check for $1b command (from video system?)
+				; check for $1b command (from video system)
+				;   (video selection starting to play?)
 				;
 Le970               cmp #$1b	; compare to $1b
                     bne Le98f	; if no, skip ahead to next check 
                     lda $4e	; \ get parameter from video system message buffer
-                    sta $ef	; / copy to $ef var (selection #?)
+                    sta $ef	; / copy to (selection #?)
                     lda #$ff	; \
-                    sta $f9	;  } mute on/off status?
+                    sta $f9	;  } signal for mute off
                     sta $cf	; /
                     lda #$e8	; (232)
-                    jsr Sf72e	; (play a selection?)
+                    jsr Sf72e	; (update selection-related variables)
                     inc $f5	; increment $f5 var
-                    lda #$e1	; \ init $e4 var to $e1 (225)
+                    lda #$e1	; \ set (fast main-loop timer) to 225
                     sta $e4	; /
                     rts		; done
 				;
@@ -1727,9 +1731,9 @@ Le970               cmp #$1b	; compare to $1b
 				;
 Le98a               cmp #$23	; compare to $23
                     beq Le9aa	;   if so, branch ahead to code
-                    rts		; otherwise, done here!
+                    rts		; otherwise, done here
 				;
-				; check for $33 command
+				; check for $33 command [end of video?]
 				;
 Le98f               cmp #$33	; compare to $33
                     bne Le98a	; if not, branch up to last check
@@ -1759,9 +1763,9 @@ Le9aa               lda $4e	; get parameter from video system input buffer
 				;
 				; parameter == 2
 				;
-                    stx $f9	;   init $f9 var to 0
-                    dex		;   X is now $ff
-                    stx $f1	;   init $f1 var to $ff (continue on)
+                    stx $f9	; init $f9 var to 0
+                    dex		; X is now $ff
+                    stx $f1	; init $f1 var to $ff (continue on)
 				;
 				; parameter == 0?
 				;
@@ -1771,10 +1775,10 @@ Le9c3               lda #$00	; \ init $ec var to 0
 				;
 				; parameter >= 3
 				;
-Le9c8               sta $f1	; store parameter from video syst to $f1 var
+Le9c8               sta $f1	; store parameter from video system to $f1 var
                     cmp #$ff	; compare it to $ff
                     bne Le9d0	; if <> $ff skip next opcode
-                    dec $f1	;   decrement $f1 counter
+                    dec $f1	;   decrement $f1 counter (continue on)
 				;
 				; parameter == 1
 				;
@@ -1784,10 +1788,10 @@ Le9d0               lda #$ff	; \ init $f6 var to $ff
 				;
 				; need to send command to video system?
 				;
-Le9d6               lda $eb	; get command code for video system?
+Le9d6               lda $eb	; get command code to send to video system
                     sta $79	; copy it to video output buffer as 1st byte of msg to vid syst
-                    ldx $fb	; get $fb var (video-related?)
-                    cpx #$02	; is it 2?
+                    ldx $fb	; \ check $fb var (video-related?)
+                    cpx #$02	; / is it 2?
                     bne Le9e7	; if not, branch ahead
                     lda $3c	;   get $3c var
                     sta $ed	;   copy it to $ed var
@@ -1801,7 +1805,7 @@ Le9e7               ldx #$00	; X=0
 				; (to video system)
 				;
                     pha		; push A (command code #$33)
-                    lda $fc	; get $fc var (video autoplay counter?)
+                    lda $fc	; get (# of 3XX videos available)
                     clc		; clear carry flag for addition
                     adc $fd	; add $fd var (?) to A
                     cmp $7a	; compare sum to $7a var (in serial output buffer to vid sys?)
@@ -1809,7 +1813,7 @@ Le9e7               ldx #$00	; X=0
                     ldy $7a	; get $7a var to Y
                     cpy #$64	; compare $7a var to $64 (100)
                     bcc Lea0b	; branch if Y < 100
-                    ldy $fe	;   get $fe var to Y
+                    ldy $fe	;   get (Y of 4XX videos available) to Y
                     beq Lea0b	;   branch if it's 0
                     tya		;     copy Y to A
                     clc		;     clear carry flag for addition
@@ -1865,9 +1869,8 @@ Lea42               ldx $39	; check video mode boolean(?)
                     jsr Sfcff	;   / 
                     lda #$60	;   \
                     jsr Sfcff	;   / put #$60 into wallbox queue (selection-related?)
-
                     ldx #$ff	;   X=$ff
-Lea5a               lda $eb	; get $eb var (command to video system?)
+Lea5a               lda $eb	; get $eb var (last command to video system?)
                     cmp #$2a	; $2a command?
                     bne Lea64	; if not, skip to next check...
                     stx $f9	;   set $f9 boolean
@@ -1895,10 +1898,10 @@ Lea80               stx $ec	;   set $ec variable
 				;
 Lea89               cmp #$33	; $33 command?
                     bne Lea95	; if not, skip ahead
-                    inc $f7	;   increment $f7 var(?)
-                    bne Lea95	;   if not 0 skip ahead
-                    lda #$90	;     \ set $f7(?) to #$90
-                    sta $f7	;     /
+                    inc $f7	;   increment video playlist index
+                    bne Lea95	;   if not wrapped around, skip ahead
+                    lda #$90	;     \ reset video playlist index to $0390
+                    sta $f7	;     / (start point)
 				;
 Lea95               lda #$00	; \
                     sta $eb	;  } zero out $eb (video command?)
@@ -1952,17 +1955,17 @@ Leadc               stx $44	; store coin input (a value 0-5)
 				;
                     txa		; copy coin input value to A
                     bne Leaee	; if money was entered branch down
-                    lda $45	;   get $45 var (bill-related?)
-                    beq Leae7	;   if $45=0 branch over next opcode
-                    dec $45	;     decrement $45 var (bill-related?)
+                    lda $45	;   \
+                    beq Leae7	;    } decrement the $5/$1 bill pulse timer (only if active)
+                    dec $45	;   /
 Leae7               lda $80	;   get $80 var(?)
                     beq Leaed	;   if $80=0 skip next opcode
 Leaeb               dec	 $80	;     decrement $80 counter
-Leaed               rts		;   done here!
+Leaed               rts		;   done
 Leaee               lda $80	; get $80 counter(?)
                     beq Leaeb	; loopback if 0
                     bmi Leaf5	; skip next opcode if underrun
-                    rts		;   done here!
+                    rts		;   done here
 				;
 Leaf5               lda #$04	; \ init $80 timer to 4
                     sta $80	; /
@@ -1982,20 +1985,26 @@ Leb01               clc		; clear carry flag (for addition)
                     lda $44	; get money-level entered again
                     cmp #$05	; was it a dollar-bill?
                     bne Leb46	; if not branch way down
-                    lda #$02	;   \ A=2
-                    sta $80	;   / set variable $80 to 2
-                    lda $031a	;   get setting for dollar bill number of extra credits
-                    clc		;   clear carry flag (for addition)
-                    adc $02f5	;   add extra credits to current credit count
-                    sta $02f5	;   store new sum back in variable location
-                    lda $45	;   get $45 (variable related to $1 and/or $5 bills)
-                    bne Leb2a	;   if <> 0 skip next opcode
-                    sta $46	;     copy $45 var to $46 var
-Leb2a               lda #$80	;   A=$80
-                    sta $45	;   reset $45 variable?
+				;
+				; handle bill signals
+				;
+                    lda #$02	; \ A=2
+                    sta $80	; / set variable $80 to 2
+                    lda $031a	; get setting for dollar bill number of extra credits
+                    clc		; clear carry flag (for addition)
+                    adc $02f5	; add extra credits to current credit count
+                    sta $02f5	; store new sum back in variable location
+				;
+				; handle $5 detection
+				;
+                    lda $45	;   get ($1/$5 bill pulse timer)
+                    bne Leb2a	;   if counter active, skip next opcode
+                    sta $46	;     reset $1/$5 bill counter to 0 (A=0 to get here)
+Leb2a               lda #$80	;   \ A=$80
+                    sta $45	;   / reset $5-bill pulse timer?
                     inc $46	;   increment counter (1/5 bills?)
-                    lda $46	;   get counter to A (1/5 bills?)
-                    cmp #$05	;   check if $5 bill was inserted
+                    lda $46	;   \ get counter to A (1/5 bills?)
+                    cmp #$05	;   / check if $5 bill was inserted
                     bne Leb46	;   if not, branch down
 				;
 				; handle $5 bill (fix accounting)
@@ -2010,19 +2019,21 @@ Leb2a               lda #$80	;   A=$80
                     bcs Leb46	;     if carry bit still set skip next opcode
                     dec $02e1	;       decrement MSB of $1-bill counter if needed
 				;
-Leb46               ldx $44	; get money-level entered (1-5) again
-                    lda $0336	; get programmable setting [undocumented location 54?]
-                    bne Leb53	; if non-zero branch down
-                    lda #$02	;   if zero:
-                    sta $38	;   store 2 at $38 var (THANK YOU & MAKE SELECTION lights?)
-                    sta $9a	;   ...and $9a var (timer value for 2 secs of THANK YOU?)
+				; (common path) all money in
 				;
-Leb53               lda $02d7	; get var (nickels to be added to physical counter?)
-                    clc		; clear carry (for addition)
-                    adc $0313,x	; add number of nickels for this coin level to A (from settings table)
+Leb46               ldx $44	; get money-level entered (1-5) again
+                    lda $0336	; get (undocumented memory location 54)
+                    bne Leb53	; if non-zero branch down
+                    lda #$02	;   \  if zero:
+                    sta $38	;    } turn on THANK YOU & MAKE SELECTION lights
+                    sta $9a	;   /  set timer value for 2 secs of THANK YOU
+				;
+Leb53               lda $02d7	; get (nickels to be added to physical counter?)
+                    clc		; \
+                    adc $0313,x	; / add number of nickels for this coin level to A (from settings table)
                     sta $02d7   ; store updated total to (nickels to be added to physical counter?)
                     lda $0313,x ; now get number of nickels in for this coin level to A
-                    sta $a0	; store at variable $a0
+                    sta $a0	; store value of money just paid
 Leb62               sta $0c	; ...and at $0c
                     lda #$e0	; \ 
                     jsr Sfcff	; / put #$e0 into event table (coin-related)
@@ -2767,14 +2778,14 @@ Lef54               dex		; 			2 cycles \ 5*175=875 cycles
 				;
 Sef5d               lda $35	; check service mode flag
                     beq Lef62	; if in regular mode skip next opcode
-                    rts		;   done here! (in service mode)
+                    rts		;   done (in service mode)
 				;
 				; read keypad and rts if no keypress
 				;
 Lef62               jsr Sf21b	; read keypad
                     lda $36	; get keycode
                     bpl Lef6a	; skip next opcode if any key pressed
-                    rts		;   if no keypress, done here!
+                    rts		;   if no keypress, done here
 				;
 				; check for RESET key
 				;
@@ -2795,10 +2806,10 @@ Lef7d               jmp Lf07a	; (only reached from bne below) jump to handle num
 				;
 				; handle non-RESET key press
 				;
-Lef80               lda $38	; get $38 var (status of THANK YOU / MAKE SELECTION lights?)
+Lef80               lda $38	; get (THANK YOU / MAKE SELECTION lamp control byte)
                     and #$01	; isolate bit 0
-                    bne Lef87	; skip next opcode if bit 0 set (i.e. MAKE SELECTION is lit?)
-                    rts		;   done here! (MAKE SELECTION is NOT lit, no entry allowed!)
+                    bne Lef87	; skip next opcode if MAKE SELECTION is lit
+                    rts		;   done here (MAKE SELECTION is NOT lit, no entry allowed!)
 				;
 Lef87               lda $36	; get keycode of key just pressed
                     cmp #$0b	; was it the POPULAR key? 
@@ -2817,7 +2828,7 @@ Lef8d               lda #$00	; \
                     lda $39	; \ check video mode boolean?
                     beq Lefbc	; / if 0 branch down
                     lda $38	;   \ get (THANK YOU / MAKE SELECTION light control byte)
-                    and #$08	;   / %0000 1000 isolate bit 3: MAKE SELECTION control bit?
+                    and #$08	;   / %0000 1000 isolate bit 3: not understood
                     beq Lefbc	;   if bit 3 = 0 branch down
                     lda $fb	;     \ get $fb var(?)
                     cmp #$02	;     / compare it to 2
@@ -2905,13 +2916,13 @@ Lf01a               txa		; copy X (selection) to A
                     cmp #$64	; compare A to $64 (100)
                     bcc Lf035	; branch over next opcode if A < 100
                     sbc #$64	;   A=A-100
-Lf035               cmp #$0a	; compare A to $0a (10)
+Lf035               cmp #$0a	; compare A to (10)
                     beq Lf073	; branch way down if A=10
-                    cmp #$0b	; compare A to $0b (11)
+                    cmp #$0b	; compare A to (11)
                     beq Lf073	; branch way down if A=11
-                    cmp #$1e	; compare A to $1e (30)
+                    cmp #$1e	; compare A to (30)
                     beq Lf073	; branch way down if A=30
-                    cmp #$1f	; compare A to $1f (31)
+                    cmp #$1f	; compare A to (31)
                     beq Lf073	; branch way down if A=31
 				;
 Lf045               jsr Sfb55	; convert 3-digit entry to binary ($28-$2a -> $2b/$2c)
@@ -2957,17 +2968,17 @@ Lf07a               lda $23	; get number of digits already entered
                     cmp #$01	; compare # of digits already entered to 1
                     bne Lf09c	; if not 1, branch down (must be 2 already entered, go handle last digit)
 				; to get here: 1 digit in; 1st digit was >= 3 (!)
-                    lda $3f	; get $3f var (???)
+                    lda $3f	; get (maximum valid 10s digit entry)
                     cmp $36	; compare to keypress code
-                    bcs Lf094	; branch ahead if $3f var >= keypress code
+                    bcs Lf094	; branch ahead if (maximum valid 10s digit entry) >= keypress code
                     rts		; otherwise, ignore keypress(?) and return
 				;
 Lf091               jmp Lf101	; jump down to handle 2nd digit entry for 1st digit of 1-2
 				;
-				; handle 2nd digit for 1st digit >=3 (only 4 allowed)
+				; handle 2nd digit for 1st digit of 3 or 4
 				;
 Lf094               beq Lf0c2	; if (?) branch down (to jmp)
-                    lda #$09	; \ set $40 var to 9
+                    lda #$09	; \ set (maximum valid 1s digit entry) to 9
                     sta $40	; /
                     bne Lf0c2	; unconditional branch down (to jmp)
 				;
@@ -2982,20 +2993,20 @@ Lf09c               lda $29	; get 10s digit of entry
                     adc $36	; add new keypress code (now a 2-digit BCD value of 2nd & 3rd digits)
                     cmp #$10	; compare to $10
                     bne Lf0aa	; skip next opcode if not $10
-                    rts    	;   done here (310/410 not allowed?)
+                    rts    	;   done here (310/410 not allowed)
 Lf0aa               cmp #$11	; compare to $11
                     bne Lf0af	; skip next opcode if not $11 
-                    rts		;   done here (311/411 not allowed?)
+                    rts		;   done here (311/411 not allowed)
 Lf0af               cmp #$30	; compare to $30
                     bne Lf0b4	; skip next opcode if not $30
-                    rts   	;   done here (330/430 not allowed?)
+                    rts   	;   done here (330/430 not allowed)
 Lf0b4               cmp #$31	; compare to $31
                     bne Lf0b9	; skip next opcode if not $31
                     rts		;   done here (331/431 not allowed?)
-Lf0b9               lda $40	; get $40 var (maximum allowed video selection?)
-                    cmp $36	; compare to current digit entered
-                    bcs Lf0c2	; branch if $40 var >= $36 var(?)
-                    beq Lf0c2	; branch if = (should never be reached?)
+Lf0b9               lda $40	; get (maximum valid 1s digit)
+                    cmp $36	; compare to last digit entered
+                    bcs Lf0c2	; branch if (max valid 1st digit) >= last digit entered
+                    beq Lf0c2	; branch if = [opcode should never be reached?]
 Lf0c1               rts		; otherwise ignore keypress
 				; 
 Lf0c2               jmp Lf13e	; (long jump fron branch above) 
@@ -3013,9 +3024,9 @@ Lf0c5               lda $36	; get the keycode
 				; 
 Lf0d2               lda $39	; video mode boolean(?)
                     beq Lf0c1	; if 0, branch to nearby rts (to ignore keypress)
-                    lda $38	; get $38 var (status of indicator lamps)
-                    and #$08	; %0000 1000 isolate bit 3: (MAKE A SELECTION status?)
-                    beq Lf0c1	; if MAKE A SELECTION is unlit, branch to nearby (to ignore keypress)
+                    lda $38	; get (indicator lamp control byte)
+                    and #$08	; %0000 1000 isolate bit 3: not understood
+                    beq Lf0c1	; if (bit 3 low) branch to nearby (to ignore keypress)
                     lda $fb	; get $fb var (?)
                     cmp #$02	; compare to 2
                     beq Lf0c1	; if $fb = 2, branch to nearby rts (to ignore keypress)
@@ -3025,20 +3036,20 @@ Lf0d2               lda $39	; video mode boolean(?)
 				; 
 				; 1st keypress was a 4:
 				; 
-                    lda $fe	; check $fe var(?)
-                    beq Lf0c1	; is $fe = 0, branch to nearby rts (to ignore keypress)
+                    lda $fe	; check (number of 4xx videos available)
+                    beq Lf0c1	; is no 4xx videos available, branch to nearby rts (to ignore keypress)
                     bne Lf0f2	; (unconditional branch ahead)
 				;
 				; 1st keypress was a 3:
 				;
-Lf0ee               lda $fc	; check $fc var (?)
-                    beq Lf0c1	; if $fc = 0, branch to nearby rts (to ignore keypress)
+Lf0ee               lda $fc	; check (number of 3xx videos available)
+                    beq Lf0c1	; if no 3xx videos available, branch to nearby rts (to ignore keypress)
 				;
 				; allowable 1st keypress of 3 or 4? (lots of hoops to jump thru to get here)
 				;
-Lf0f2               sta $24	; copy $fc or $fe var value to $24 var (value for parsing to digits)
-                    lda #$22	; \
-                    sta $26	; / set offset to $22 (output to $3d-$40?)
+Lf0f2               sta $24	; copy $fc (or $fe) var value to $24 var (max allowable 3xx/4xx entry)
+                    lda #$22	; \ set offset; output to $3d-$40 (really just $3f & $40)
+                    sta $26	; / 
                     jsr See45	; parse 2-byte value into 4 decimal digits
                     lda #$ff	; \ set video mode flag $3b?
                     sta $3b	; / 
@@ -3173,13 +3184,13 @@ Sf1b2               ldy $3b	; check video/record mode flag
 				; [alternate subroutine entry point]
 				;
 Sf1b6               txa		; X->A [called w/X=$40 & X=$a4]
-                    sta $ca	; store as $ca var(?)
-                    ldy $f8	; get the video selection pointer(?)
-                    sta $0300,y	; store selection (or code?) in video selection table 
+                    sta $ca	; store as (selection playing?)
+                    ldy $f8	; get the video selection pointer (next entry)
+                    sta $0300,y	; put selection (or code?) in video selection table 
                     iny		; increment video selection pointer
                     bne Lf1c3	; if not 0 skip next opcode
-                    ldy #$90	;   Y=$90 (wrap around?)
-Lf1c3               cpy $f7	; compare new Y to $f7 var(?)
+                    ldy #$90	;   wrap around index to $0390
+Lf1c3               cpy $f7	; compare incremented Y to video playlist index (next to play)
                     beq Lf1c9	; if Y == $f7 var, skip next opcode
                     sty $f8	; update the video selection pointer
 Lf1c9               rts		; done
@@ -3262,7 +3273,7 @@ Lf221               lda $ff8c,x	; get Xth value from ROM table (select keypad se
                     lda $47	; get debounce counter(?)
                     beq Lf23e	; if 0, branch down to RTS
                     dec $47	;   otherwise decrement debounce counter(?)
-Lf23e               rts		; no key pressed, done here!
+Lf23e               rts		; no key pressed, done here
 				;
 				; keypress detected?
 				;
@@ -3272,7 +3283,7 @@ Lf23f               lda $47	; get debounce counter(?)
                     stx $9c	;   ...and at $9c
 Lf247               lda #$0a	; \ init debounce counter(?) to 10?
                     sta $47	; / store debounce counter(?)
-                    rts		; done here!
+                    rts		; done
                     		;
 				;*****************
 				; credit related?
@@ -3337,7 +3348,7 @@ Lf2a3               lda $031e	; check records/video mode
 				;
                     lda $02f5	; \ copy credit total (records) to dividend
                     sta $16	; /
-                    lda #$00	; \ divident MSB to 0 
+                    lda #$00	; \ dividend MSB to 0 
                     sta $15	; /
                     lda $02fb	; \ copy counter(?) to divisor
                     sta $18	; /
@@ -3373,13 +3384,13 @@ Lf2e6               lda $02f5	; get current credit total
 				;
 				; handle running out of credits
 				;
-                    lda #$0a	;   \
-                    sta $9a	;   / set timer value for 10s of "THANK YOU" lit
-                    lda #$02	;   \
-                    sta $38	;   / put 2 at $38 var (turn on THANK YOU?)
-                    lda #$aa	;   \ %1010 1010
-                    and $4c	;   / clear even bits of $4c?
-                    sta $4c	;   store it back
+                    lda #$0a	; \
+                    sta $9a	; / set timer value for 10s of "THANK YOU"
+                    lda #$02	; \ %0000 0010
+                    sta $38	; / turn on THANK YOU lamp
+                    lda #$aa	; \ %1010 1010
+                    and $4c	; / clear even bits of $4c?
+                    sta $4c	; store it back
 				;
 Lf2f9               lda $02f7	; have credits; check $02f7 (video credits?)
                     bne Lf304	; if non-zero branch ahead
@@ -3552,7 +3563,7 @@ Lf410               lda #$74	;   A=$74 set offset for output
                     jsr See45	;   parse 2-byte number into 4 decimal digits
                     lda $8f	;   get 1st digit (1000s)
                     sta $96	;   copy to $96 (put 1st digit on rightmost "MOST POPULAR SELECTION" LED)
-                    rts		;   done here!
+                    rts		;   done here
 				;
 Lf41c               ldx #$05	; \ set default pointer MSB to page 5 (for 1XX/2XX)
                     stx $82	; / 
@@ -3609,8 +3620,8 @@ Lf467               cmp #$09	; compare A to 9 (for 9XX code)
                     ldy #$63	; \ 
                     cpy $06	; / are 2nd & 3rd digits 99?
                     bne Lf47b	; if not 99, branch to rts [ignores all 9XX except 999]
-                    sty $cb	;   \ put Y (99 decimal)
-                    sty $cd	;   / at $cb and $cd (why?) (indicate warm reboot)
+                    sty $cb	;   \ put (99 decimal)
+                    sty $cd	;   / at $cb and $cd (to indicate warm reboot?)
                     jsr Se453	;   update LED displays
                     jmp Reset	;   reboot the juke!
 Lf47b               rts		; done
@@ -3633,7 +3644,7 @@ Lf47c               ldy $06	; get XX part of code to Y
 Lf48b               cpy #$01	; is Y=1?
                     bne Lf493	; if not, branch down to check more codes...
                     jsr Se749	;   clear some variables, including current credit-count
-                    rts		;   done here!    
+                    rts		;   done here
 				;
 				;   702 CODE: CLEAR AUTOPLAY LIST
 				;
@@ -3677,9 +3688,9 @@ Lf4c9               sta ($81),y	;   put $ff at $0200 + Y    \
                     ldy #$31	;     (50)
                     jmp Lf4c9 	;   jump back up
 Lf4db               lda #$90	;   \
-                    sta $f7	;    } init $f7 & $f8 vars to $90 (?)
+                    sta $f7	;    } init video selection playlist indicies -> $0390
                     sta $f8	;   /
-                    lda #$3a	;   \ init $eb var to $3a (?)
+                    lda #$3a	;   \ send $3a command to video system
                     sta $eb	;   /
                     ldx #$90	;   init counter X=$90 (144)
                     lda #$00	;   A=0
@@ -3703,16 +3714,16 @@ Sf501               lda #$00	;     [alt. entry point]
 Lf505               sta $02d7,y	;     clear $02d8-$02f1 
                     dey		;       decrement Y counter
                     bne Lf505	;     loopback until done
-Lf50b               rts		;   done here!
+Lf50b               rts		;   done here
 				;
 				;   CODE 770: VIDEO SYSTEM INIT
 				;
 Lf50c               cpy #$46	; compare Y to 70 (for code 770: video system init)
                     bne Lf523	; if not, branch to next check...
-                    lda #$00	;   apparently "video system init"
-                    sta $f9	;   only entails setting 6
-                    sta $e8	;   default variable values:
-                    sta $ea	;   $f9,$e8,$ea vars = 0
+                    lda #$00	;   \
+                    sta $f9	;    \ init $f9,$e8,$ea vars to 0
+                    sta $e8	;    /
+                    sta $ea	;   /
                     lda #$ff	;   \
                     sta $f1	;   / $f1 var = $ff
                     lda #$0a	;   \
@@ -3729,7 +3740,7 @@ Lf523               cpy #$03	; is Y=3?
                     jsr Sf1b6	;   / [add to video playlist?]
                     ldx #$a4	;   \ X=$a4 (164)
                     jsr Sf1b6	;   / [add to video playlist?]
-                    rts		;   done here!
+                    rts		;   done
                     		;
 				;*************
 				; DO AUTOPLAY
@@ -3811,19 +3822,19 @@ Lf5ad               ldx #$00	;   X=0 at 29, roll back to 0
 Lf5b2               stx $e6	; store autoplay list position
                     lda $033c,x	; get autoplay custom programmed table value based on X
                     beq Lf5ad	; init position if autoplay table value is 0
-                    rts		;   if non-zero, done here! (returning selection # in A)
+                    rts		;   if non-zero, done here (returning selection # in A)
 				;
 				; handle non-list autoplay modes
 				; [needs more attention]
 				;
 Lf5ba               cmp #$03	; auto play mode 3? (video)
                     bcc Lf5ed	; is A < 3 branch down
-                    lda $fc	;   get $fc var (?)
+                    lda $fc	;   get (number of 3xx videos available)
                     clc		;   clear carry flag for addition
                     adc $fd	;   add $fd var (?)
                     cmp $e1	;   compare to $e1 var (autoplay counter?)
                     bcs Lf5e2	;   branch if > 
-                    lda $fe	;   get $fe var
+                    lda $fe	;   get (number of 4xx videos available)
                     beq Lf5de	;   branch if	
                     ldx $e1	;   get $e1 var
                     cpx #$64	;   compare to $64
@@ -3842,7 +3853,7 @@ Lf5e2               lda $e1	;
                     lda #$00	;
                     sta $f1	;
                     jsr Sf1b6	; [add to video playlist?]
-                    rts		;   done here!
+                    rts		;   done here
 				;
 Lf5ed               tax		; X->A
                     cpx #$02	; autoplay mode 2? (B-sides)
@@ -3981,6 +3992,8 @@ Lf6a1               lda $ea	; \ check $ea var
 Lf6ba               jsr Sff4d	;     turn DETENT off
                     rts		;  done
 				;
+				; if $ea == 0
+				;
 Lf6be               lda $70	; get $70 var (selection playing flag?)
                     beq Lf6ba	; if 0, branch back
                     inc $5a	;   increment $5a var
@@ -4054,9 +4067,9 @@ Lf71d               lda #$ff	; \
                     eor $f2	;  } toggle $f2 boolean (?)
                     sta $f2	; /
                     jsr Sff4d	; turn DETENT off (stop the magazine here)
-                    lda #$db	; 
+                    lda #$db	; parameter for wallbox command $62?
 				; [alt. entry point]
-Sf72e               sta $9e	; second parameter ($db) for wallbox command $62
+Sf72e               sta $9e	; second parameter for wallbox command $62
                     lda $ef	; get (magazine position + 100)
                     sta $c9	; copy to $c9 var (?)
                     rts		; done
@@ -4159,7 +4172,7 @@ Lf7ae               jmp Lf864	; jump to 'transfer in progress'?
 				;
 				; video mode related?
 				;
-Lf7b1               lda $ed	; \ unknown var
+Lf7b1               lda $ed	; \ unknown var (selection?)
                     bne Lf7bb	; /
 Lf7b5               jmp Lf864	; jump to 'transfer in progress'?
 				;
@@ -4250,7 +4263,7 @@ Lf837               lda #$ff	; \
                     ldx $ea	; \ check $ea var
                     beq Lf84b	; / skip next opcode if $ea=0
                     lda #$ed	;   A=$ed
-Lf84b               jsr Sf72e	; (adjust a couple variables?)
+Lf84b               jsr Sf72e	; (update selection related variables)
                     sty $ea	; 
                     lda #$fe	; \  %1111 1110
                     and $2002	;  } clear bit 0 of PIA1-B: MUTE
@@ -4330,14 +4343,14 @@ Sf8b1               jsr Sf95a	; [do some important background tasks before we ge
 				; handle video mode
 				;
                     clc		; clear carry flag for addition
-                    lda $fc	; fetch $fc var (?)
-                    adc $fe	; add $fe var (?) to A
-                    beq Lf8d1	; branch down if 0
-                    ldy $fc	;   get $fc var to Y (video autoplay mode?)
+                    lda $fc	; fetch (number of 3xx videos available)
+                    adc $fe	; add (number of 4xx videos available) to get total videos
+                    beq Lf8d1	; branch down if no videos available
+                    ldy $fc	;   check (number of 3xx videos available)
                     beq Lf8d1	;   branch down if 0
-                    ldy $fe	;     get $fe var to Y
+                    ldy $fe	;     check (number of 4xx videos available)
                     beq Lf8d1	;     branch down if 0
-                    adc #$01	;       A=A+1, if an only if: $fc+$fe<>0 AND $fc<>0 AND $fe<>0(?)
+                    adc #$01	;       1 greater than number of total videos (if both 3xx and 4xx selections exist)
 Lf8d1               tay		; A->Y
                     lda #$07	; \ change MSB of pointer
                     sta $77	; / now $76/$77 -> $0700 (video selections table)
@@ -4418,17 +4431,17 @@ Lf92b               lda ($76),y	; get value from plays table
 Lf934               dey		; move to next entry in tables
                     cpy #$ff	; did it wrap around?
                     bne Lf93a	; skip next opcode unless Y wrapped
-Lf939               rts		;   done here!
+Lf939               rts		;   done here
 Lf93a               cmp ($76),y	; compare (incremented value) to next entry in table  
                     bcs Lf93f	; if A >= table value, skip next opcode...
-                    rts		;   done here! (already in numerical order)
+                    rts		;   done here (already in numerical order)
 Lf93f               bne Lf94b	; if A <> table value, branch down
                     inc $77	;   (point to selection table)
                     lda ($76),y	;   get value from selection table
                     iny		;   move back to previous table position
                     cmp ($76),y	;   compare
                     bcs Lf951	;   branch if A >= previous value, swap [sorts by selection for those with same # of plays]
-                    rts		; done here!
+                    rts		; done here
 Lf94b               iny		; move to previous table position
                     jsr Sf903	; swap table entries
                     inc $77	; (point to selections table)
@@ -4563,10 +4576,10 @@ Sf9df               lda #$00	; \
 				;
 				; [this video-related code block needs attention]
 				;
-                    lda $fc	; get $fc var (# of videos avail?)
-                    clc		; \ add 1 to $fc (# of videos?) 
+                    lda $fc	; get (# of 3xx videos available)
+                    clc		; \ add 1 to (# of 3xx videos) 
                     adc #$01	; /
-                    sta $06	; $06/$07 -> $07xx, where xx is (value from $fc)+1
+                    sta $06	; $06/$07 -> $07xx, where xx is (# of 3xx videos)+ 1
                     ldx #$7f	; init byte counter to 127
                     ldy #$3f	; init index counter 63
 Lfa21               txa		; copy byte counter to A
@@ -4577,7 +4590,7 @@ Lfa21               txa		; copy byte counter to A
 				;
                     lda #$80	; \
                     sta $06	; / LSB of pointer ($0780)
-                    ldy #$63	; $63 bytes in size ($0780-$07e3?)
+                    ldy #$63	; 100 bytes in size ($0780-$07e3)
                     jsr Sfb23	; fill RAM with sequential values
                     rts		; done
                     		;
@@ -4600,10 +4613,10 @@ Lfa32               lda #$e3	; \
 				; advance button pressed
 				;
                     clc		; clear carry flag
-                    lda $fe	; get $fe var (?)
+                    lda $fe	; get (# of 4XX videos available)
                     beq Lfa58	; branch down if 0
-                    ldy $fc	;   get $fc var to Y
-                    beq Lfa58	;   skip next opcode if $fc=0
+                    ldy $fc	;   get (# of 3XX videos available)
+                    beq Lfa58	;   skip next opcode if 0
                     sec		;     set carry flag
 Lfa58               adc $fc	; A = $fe var + $fc var + carry flag (total videos?)
                     sta $6f	; \ store new A total in $6f var
@@ -4639,7 +4652,7 @@ Lfa86               ldy #$00	; offset = 0
                     bcc Lfa90	; \ limit value for 2-digit display
                     lda #$63	; / (max of 99)
 Lfa90               sta $24	; copy count to be converted to decimal digits
-                    lda #$00	; \ set $86 var to 0 (CCC LED decimal point flag?)
+                    lda #$00	; \ set $86 var to 0 (CCC LED decimal point flag)
                     sta $86	; /
                     lda #$43	; \ set offset for output
                     sta $26	; / will be at $5e-$61 (on CCC LEDs)
@@ -4658,7 +4671,7 @@ Lfa90               sta $24	; copy count to be converted to decimal digits
                     sbc #$40	;   / subtract 64 from A
                     sta $24	;   store new total at $24 for conversion to digits
                     lda #$ff	;   \
-                    sta $86	;   / init $86 var to $ff (CCC LED decimal point flag?)
+                    sta $86	;   / set (CCC LED decimal point flag) high
 				;
 Lfab8               dec $77	; decrement MSB of pointer (back to page 6?)
                     lda #$41	; \ 
@@ -4710,13 +4723,13 @@ Lfaf9               lda #$f0	; \  %1111 0000
                     and $4000	; /  read CCC ADVANCE button via PIA2-A
                     beq Lfb06	; skip next opcode if pressed
                     rts		;   not pressed, rts
-Lfb06               lda $fe	; get $fe var
+Lfb06               lda $fe	; get (# of 4XX videos available)
                     clc		; clear carry flag
-                    beq Lfb10	; branch down if $fe = 0
-                    ldy $fc	;   get $fc var to Y
-                    beq Lfb10	;   branch down if $fc = 0
+                    beq Lfb10	; branch down if no 4XX videos exist
+                    ldy $fc	;   get (# of 3XX videos available) to Y
+                    beq Lfb10	;   branch down if no 3XX videos exist
                     sec		;     set carry flag
-Lfb10               adc $fc	; A=A+$fc + carry flag
+Lfb10               adc $fc	; A=$fe+$fc + carry flag
                     adc #$01	; A=A+1
                     cmp $76	; compare to $76 var
                     bcc Lfaf4	; loopback if A < $76 var
@@ -5137,7 +5150,7 @@ Sfcff               ldx $0171	; get offset to X register (table pointer)
 Lfd0c               cpx $0170	; compare X to $0170
                     beq Lfd14	; if equal branch to rts
                     stx $0171	;   otherwise store updated table index
-Lfd14               rts		; done here!
+Lfd14               rts		; done
 				;
 				;*************************************
 				; prepare messages to send to wallbox
@@ -5232,9 +5245,9 @@ Lfd8c               ldx #$0a	; X=$0a (LSB -> $030a video pricing)
                     jsr Sfde3	; copy Y+1 bytes from page 3 to $b3-$b6
                     lda $031b	; get freeplay setting (255 or 0)
                     sta $b3	; copy it to $b3 (overwrite value just copied there)
-                    lda $fc	; \ get $fc var (video-related?)
+                    lda $fc	; \ get (# of 3XX videos available)
                     sta $b7	; / copy to $b7 [byte to send to wallbox]
-                    lda $fe	; \ get $fe var (video-related?)
+                    lda $fe	; \ get (# of 4XX videos available)
                     sta $b8	; / copy to $b8 [byte to send to wallbox]
                     lda #$09	; \ init temp var $06 to 9
                     sta $06	; /
