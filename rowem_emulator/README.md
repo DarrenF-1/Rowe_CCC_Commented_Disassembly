@@ -15,7 +15,7 @@ Note that rowem.c and fake6502.c should probably be in the current folder for th
 
 > rowem
 
-Note that rowem _requires_ there to be an 8kB file named "rom.bin" in the same folder (there is currently no graceful error/warning if this is not found, or is the wrong size).  I use the EPROM dump "ROWE_R-89_V.3_70039704_2764.bin" (part of the repo) renamed "rom.bin" for this purpose; however any working Rowe CCC (8kB) ROM should suffice.
+Note that rowem _requires_ there to be an 8kB or 16kB file named "rom.bin" in the same folder (there is currently no graceful error/warning if this is not found, or is the wrong size).  I use the EPROM dump "ROWE_R-89_V.3_70039704_2764.bin" (part of the repo) renamed "rom.bin" for this purpose; however any working Rowe CCC (8kB or 16kB) ROM should suffice.
 
 _rowem_ will prompt you:
 > Simulate loss of battery power (reset all RAM)?
