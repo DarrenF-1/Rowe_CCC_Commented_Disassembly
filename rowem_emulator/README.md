@@ -49,8 +49,8 @@ The key bindings/controls of _rowem_ are:
 
     q = Quit emulator
     ! = reset 6502 CPU
-    . = memory monitor next page
-    , = memory monitor prev page
+    . = memory monitor, next page
+    , = memory monitor, prev page
     c = coin 1 (nickel)
     v = coin 2 (dime)
     b = coin 3 (quarter)
@@ -59,12 +59,12 @@ The key bindings/controls of _rowem_ are:
     0-9 = keypad digits
     p = keypad POPULAR key
     r = keypad RESET key
-    o = 0 + POPULAR keys (for programming mode)
-    x = CANCEL button (on mech, back of juke, remote box)
+    o = 0 + POPULAR keys (for entering programming mode)
+    x = CANCEL button (on mech, back of juke, or remote box)
     a = ADVANCE button on CCC
     z = RESET button on CCC
     l = MOST/LEAST switch toggle on CCC
     t = RECORD/VIDEO switch toggle on CCC
-    s = SERVICE/ON switch toggle under top
+    s = SERVICE/ON switch toggle under top of jukebox
     - = toggle battery low/normal level signal
     [space] = pause emulator
