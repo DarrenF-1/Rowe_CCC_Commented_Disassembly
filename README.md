@@ -10,7 +10,7 @@ This project focuses on the R-89 model jukebox, because that's what I own.  Howe
 
 The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn may facilitate hacks/modifications/improvements/add-ons/upgrades/homebrew versions/etc.
 
-> COMMENTED DISSASSEMBLY PROJECT STATUS: ~65% complete
+> COMMENTED DISSASSEMBLY PROJECT STATUS: ~70% complete
 
 ## Sub-Projects
 
