@@ -1,7 +1,7 @@
 rowem: A Rowe CCC Emulator
 ==========================
 
-_rowem_ is currently being developed in Windows 10.  However, only fairly basic console I/O are being used.  So porting it to a POSIX system probably wouldn't be too hard, for someone motivated to do so.  Might be easier to just use a Windows VM or maybe WINE, although I haven't tried either.
+_rowem_ is currently being developed in Windows 11.  However, only fairly basic console I/O are being used.  So porting it to a POSIX system probably wouldn't be too hard, for someone motivated to do so.  Might be easier to just use a Windows VM or maybe WINE, although I haven't tried either.
 
    <img src="rowem_screen.PNG" width="40%">
 
@@ -20,11 +20,11 @@ Note that rowem _requires_ there to be an 8kB or 16kB file named "rom.bin" in th
 _rowem_ will prompt you:
 > Simulate loss of battery power (reset all RAM)?
 
-You should answer:
+On the first run, you should answer:
 
 > y
 
-on the first run, as there will be no "ram.bin" file (it gets saves when exiting the emulator).  _rowem_ will next prompt:
+as there will be no "ram.bin" file (it gets saved when exiting the emulator).  _rowem_ will next prompt:
 
 >  Hold ADVANCE and RESET?
 
@@ -32,7 +32,7 @@ To which I recommend you respond:
 
 >  y
 
-At thta point, the emulator should boot up.  On subsequent runs (after properly exiting rowem, so that a "ram.bin" file gets created) you may answer "n" to the first prompt.  In that case, rowem will load the prior RAM contents from "ram.bin", and you may also answer "n" to the 2nd prompt.  This will simulate powering the jukebox on after being powered off (with a functional battery in the CCC).
+At that point, the emulator should boot up.  On subsequent runs (after properly exiting rowem, so that a "ram.bin" file gets created) you may answer "n" to the first prompt.  In that case, rowem will load the prior RAM contents from "ram.bin", and you may also answer "n" to the 2nd prompt.  This will simulate powering the jukebox on after being powered off (with a functional battery in the CCC).
 
 The _rowem_ display consists of:
  - Top row: the (4) 3-digit LED 7-segment displays on the top of the jukebox, 
