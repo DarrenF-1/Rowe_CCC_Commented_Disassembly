@@ -29,7 +29,7 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
 ## Description of files:
   - **ROWE_R-89_V.3_70039704_2764.bin** - a binary dump of the EPROM in my jukebox.  It is the starting point for this whole effort.  "ROWE_R-89" is the make and model of the jukebox; "V.3_70039704" is the printing on the label found on the EPROM, and "2764" is the type/size of EPROM on which the code was programmed.
   
-  - **R89_EPROM_disassembly.txt** - the primary work-product.  It was started as an automatically-generated disassembly of the above binary EPROM dump.  The raw disassembly was generated using an online disassembly tool: https://www.white-flame.com/wfdis/.  All comments are made using a simple text editor.
+  - **R89_EPROM_disassembly.asm** - the primary work-product.  It was started as an automatically-generated disassembly of the above binary EPROM dump.  The raw disassembly was generated using an online disassembly tool: https://www.white-flame.com/wfdis/.  All comments are made using a simple text editor.
     
   - **basic_info.txt** - provides a brief description of the CCC's notable electronic hardware components; a high-level memory map of the CCC; and a short explaination of how a 6502 CPU starts up, which provides an entry point into the CCC's EPROM code.
     
