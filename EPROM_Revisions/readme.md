@@ -19,6 +19,6 @@ Explanation of table:
 - vectors refer to the address pointed to by the 6502 INT/NMI/RESET vectors in the final bytes of the file.
 - 2nd byte is the (hex) value of the 2nd byte of the file.  Rowe appears to have used this byte as an adjustment to make the hex sum of all bytes in the EPROM end in "00" (this is how the ROM checksum code functions).
 - lines of code is an approximation of the number of 6502 opcodes, based on a preliminary disassembly.
-- code bytes/non-code bytes/data bytes/unused bytes are an analysis of the makeup of the EPROM, based on a preliminary disassembly.
+- total bytes/code bytes/non-code bytes/data bytes/unused bytes are an analysis of the makeup of the EPROM, based on a preliminary disassembly.
 - indirect jmp? indicates (yes or no) if the preliminary disassembly contains any 6502 indirect jmp opcode(s).
 - 
