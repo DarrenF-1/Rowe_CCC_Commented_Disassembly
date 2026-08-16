@@ -36,6 +36,9 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
   - **R-93_CCC_schematic.png** - an electronic schematic diagram of a CCC circuit board.  This is from an R-93, which is believed to be electronically identical (or nearly so) to the PCBs used for the entire R-89 thru R-94 series (as well as the R-88 video model).
     ![Schematic Diagram](./R-93_CCC_schematic.png)
 
+  - **R-89_CCC_PCB.JPG** - my CCC circuit board.  The EPROM, 6502 CPU, PIAs, RAM and other components can be seen.
+    ![PCB photo](./R-89_CCC_PCB.JPG)
+
   - **R-89_CCC_assembly.jpg** - a CCC unit assembly.  The CCC PCB is enclosed in the plastic housing.  The connector labels, switch labels, and button labels, and LED readout labels are are visible.  This CCC is installed into a jukebox with a bill validator (P3 connector), but no video system (P5 connector) or wallboxes (P4 connector).
     ![CCC Assembly](./R-89_CCC_assembly.JPG)
     
