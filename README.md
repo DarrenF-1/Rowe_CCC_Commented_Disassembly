@@ -18,7 +18,7 @@ There are also sub-projects undertaken to support the above main purpose.  For e
 
 ### Emulator
 
-A sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: ~~http://rubbermallet.org/fake6502.c~~ LINK ROT.  Archive.org snapshot here:  https://web.archive.org/web/20260719060948/http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a valuable tool to help build and verify understanding of the 6502 code function, especially variables and RAM use.  It is also helpful for simulated testing of EPROM code modifications (see **ROM Hacking*** folder).  It could potentially be even more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.
+A sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: ~~http://rubbermallet.org/fake6502.c~~ LINK ROT.  Archive.org snapshot here:  https://web.archive.org/web/20260719060948/http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a valuable tool to help build and verify understanding of the 6502 code function, especially variables and RAM use.  It is also helpful for simulated testing of EPROM code modifications (see **ROM_hacking** folder).  It could potentially be even more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.
 
 > EMULATOR PROJECT STATUS: rowem v0.2 has basic functionality and is released.  Plenty of opportunity remains to add features and make improvements.
 
@@ -43,7 +43,7 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
 
   -  **documents** (folder) - files documenting the R-89 jukebox, associated hardware, accessories/options, other jukeboxes of the same era sharing identical or similar hardware, and any other documentation potentially helpful for understanding and commenting the disassembly of code.
 
-  - **ROM hacking** (folder)
+  - **ROM_hacking** (folder) - modifying the original code.
 
-  - **Hardware hacking** (folder)
-    
+  - **Hardware_hacking** (folder) - interfacing with modern hardware.
+
