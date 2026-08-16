@@ -14,7 +14,7 @@ The main purpose of the project is to document, by commenting a disassembly of o
 
 ## Sub-Projects
 
-There are also sub-projects undertaken to support the above main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential to CCC function: the LED displays in the top of the jukebox, the record magazine controller mechanism, the input keypad, etc.  But some other interfaces are very much optional:  the InterROWEgator device, wallboxes like the "Walette", the V/MEC video system, and CD changers used with later versions of the CCC.  In any case, better understanding of these devices will help to understand more of the CCC code which communicates with them.
+There are also sub-projects undertaken to support the above main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential to CCC function: the LED displays in the top of the jukebox, the record magazine controller mechanism, the input keypad, etc.  But some other interfaces are very much optional:  the InterROWEgator device, wallboxes like the WRE/WRF "Wallette", the V/MEC video system, and CD changers used with later versions of the CCC.  In any case, better understanding of these devices will help to understand more of the CCC code which communicates with them.
 
 ### Emulator
 
