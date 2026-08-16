@@ -4,7 +4,7 @@ One of the consequences of having a commented disassembly, is that it enables th
 
 I use the term "hack" also because I do not (yet) create a re-assemble-able 6502 source file and use an assembler to create a new binary file from the source code.  Instead, I keep my changes minimum and manually modify & add bytes to the binary EPROM file to accomplish the changes.
 
-So far, I have used this method to implement the following:
+So far, I have used this method to implement the following hacks to my CCC EPROM:
 
 -  Know What Played Last: keeps last record played in "selection playing" display
    when jukebox is idle. (Original code returned display to "100" when the jukebox was idle.)
