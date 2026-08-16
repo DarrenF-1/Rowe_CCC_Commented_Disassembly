@@ -1,24 +1,24 @@
 # Rowe CCC Commented Disassembly
 
-My project to understand and comment a disassembly of my Rowe/AMI R-89 jukebox's CCC code.
+_My project to understand and comment a disassembly of my Rowe/AMI R-89 jukebox's CCC code_.
 
-The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brain" is the CCC (Central Control Computer).  The CCC is a simple 8-bit embedded computer, with a 6502 microprocessor, two 6520 PIA I/O ICs, 2KB of battery-backed CMOS RAM, and code (and data) programmed to an EPROM (8kB or 16kB).  This project is primarily about documenting how the code (and data) on the EPROM functions.
+The Rowe/AMI R-89 is a jukebox released in late 1984.  Its "brain" is the CCC (Central Control Computer).  The CCC is a simple 8-bit embedded computer, with a 6502 microprocessor, two 6520 PIA I/O ICs, 2kB of battery-backed CMOS RAM, and code (and data) programmed to an EPROM (8kB or 16kB).  This project is primarily about documenting how the code (and data) on the EPROM functions.
 
-This project currently focuses on the R-89 model jukebox, mostly because that's what I own.  However, the project has a slightly wider applicability.  Largely similar (perhaps identical) CCC circuit boards and evolving code was used for subsequent Rowe jukebox models for several years, such as the R-90, R-91, R-92, R-93 and R-94 (collectively "R-9X").  Some other collectors have shared EPROM dumps of other EPROMs in this series.  Future work will include comparative disassembly of later EPROM versions.
+This project currently focuses on the R-89 model jukebox, because that's what I own.  However, the project has a wider applicability.  Largely similar (perhaps identical) CCC circuit boards and evolving code was used for subsequent Rowe jukebox models for several years, such as the R-90, R-91, R-92, R-93 and R-94 (collectively "R-9X").  Some other collectors have shared EPROM dumps of other EPROMs in this series.  Future work will include comparative disassembly of other EPROM versions.
 
 > Note that this project relates specifically to the "CCC" used in th R-88 _video_ and R-89 through the R-94 models with CCC assembly part number 4-07773-XX and CCC PCB part number 6-09738-XX. It does *not* relate to the identically-named "CCC" used in the earlier R-84 throuh R-88 (_non_-video) models, with assembly P/N 6-08870-XX and PCB P/N 6-08871-XX; _nor_ to the "CCC" used in the later CD-100 and up models, with assembly P/N 4-08322-XX and PCB P/N 6-10311-XX.
 
-The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  This in turn will facilitate code hacks/modifications, improvements, add-ons, upgrades, homebrew versions, etc.
+The main purpose of the project is to document, by commenting a disassembly of original 6502 code, as much as possible of the CCC EPROM code/data.  However, this will in turn facilitate code hacks/modifications, improvements, add-ons, upgrades, homebrew versions, hardware interfaces, etc.
 
-> COMMENTED DISASSEMBLY PROJECT STATUS: ~85% complete.  Much of the remaining code, not fully understood, relates to video mode and low-level state machine operation of the record mechanism ("mech").
+> COMMENTED DISASSEMBLY **PROJECT STATUS: ~85% complete**.  Much of the remaining code, not fully understood, relates to video mode and low-level state machine operation of the record mechanism ("mech").
 
 ## Sub-Projects
 
-There are also sub-projects undertaken to support the above main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential to CCC function: the LED displays in the top of the jukebox, the record magazine controller, the keypad, etc.  But some interfaces are very much optional:  the InterROWEgator device, wallboxes, the V/MEC video  system, a CD changer used with later versions of the CCC.  In any case, better understanding of these devices will help to understand more of the code in the CCC which communicates with them.
+There are also sub-projects undertaken to support the above main purpose.  For example, documenting and understanding all of the connections and interfaces to the CCC.  Some of these interfaces are all but essential to CCC function: the LED displays in the top of the jukebox, the record magazine controller mechanism, the input keypad, etc.  But some other interfaces are very much optional:  the InterROWEgator device, wallboxes like the "Walette", the V/MEC video system, and CD changers used with later versions of the CCC.  In any case, better understanding of these devices will help to understand more of the CCC code which communicates with them.
 
 ### Emulator
 
-A sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: ~~http://rubbermallet.org/fake6502.c~~ LINK ROT.  Archive.org snapshot here:  https://web.archive.org/web/20260719060948/http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a valuable tool to help build and verify understanding of the 6502 code function (especially variable/RAM use).  It will also be helpful to do simulated testing of future EPROM code modifications.  It could potentially be much more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.  Some of these features may be added in the future.
+A sub-project to help support the commented disassembly is the creation of an emulator.  It uses a public-domain 6502 CPU emulator (Fake6502 CPU emulator core v1.1, by Mike Chambers, as found here: ~~http://rubbermallet.org/fake6502.c~~ LINK ROT.  Archive.org snapshot here:  https://web.archive.org/web/20260719060948/http://rubbermallet.org/fake6502.c) as the core of a CCC/jukebox emulator written by me that I am calling "rowem".  It is currently very bare-bones, but functional.  It boots up, allows service and programming modes, permits coining-up, and simulating playing selections, saves RAM between sessions, has a (text-based) display and the ability to monitor any selected page (256-bytes) of RAM during operation.  This is a valuable tool to help build and verify understanding of the 6502 code function, especially variables and RAM use.  It is also helpful for simulated testing of EPROM code modifications (see **ROM Hacking*** folder).  It could potentially be even more useful, if it had additional features such as breakpoints/watchpoints, live disassembly, register monitoring, etc.
 
 > EMULATOR PROJECT STATUS: rowem v0.2 has basic functionality and is released.  Plenty of opportunity remains to add features and make improvements.
 
@@ -42,4 +42,8 @@ Note that I am *not* a professional programmer.  The 6502 comments and emulator 
   - **rowem_emulator** (folder) - files for the rowem CCC emulator.  See readme file in that directory for more information.
 
   -  **documents** (folder) - files documenting the R-89 jukebox, associated hardware, accessories/options, other jukeboxes of the same era sharing identical or similar hardware, and any other documentation potentially helpful for understanding and commenting the disassembly of code.
+
+  - **ROM hacking** (folder)
+
+  - **Hardware hacking** (folder)
     
